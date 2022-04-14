@@ -22,6 +22,8 @@ public:
 
   bool hasParent(const IndexVar&) const;
 
+  bool hasChildren(const IndexVar&) const;
+
   const IndexVar& getParent(const IndexVar&) const;
 
   const std::vector<IndexVar>& getChildren(const IndexVar&) const;

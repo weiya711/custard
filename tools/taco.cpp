@@ -17,6 +17,7 @@
 #include "taco/ir/ir_printer.h"
 #include "taco/index_notation/kernel.h"
 #include "lower/iteration_graph.h"
+#include "sam/sam_graph.h"
 #include "taco/lower/lower.h"
 #include "taco/codegen/module.h"
 #include "codegen/codegen_c.h"
@@ -185,6 +186,9 @@ static void printUsageInfo() {
   cout << endl;
   printFlag("print-iteration-graph",
             "Print the iteration graph of this expression in the dot format.");
+  cout << endl;
+  printFlag("print-sam-graph",
+            "Print the SAM graph of this expression in the dot format.");
   cout << endl;
   printFlag("print-nocolor", "Print without colors.");
   cout << endl;
@@ -648,6 +652,7 @@ int main(int argc, char* argv[]) {
   bool printKernels        = false;
   bool printConcrete       = false;
   bool printIterationGraph = false;
+  bool printSAMGraph       = false;
 
   bool writeCompute        = false;
   bool writeAssemble       = false;
@@ -928,6 +933,9 @@ int main(int argc, char* argv[]) {
     else if ("-print-iteration-graph" == argName) {
       printIterationGraph = true;
     }
+    else if ("-print-sam-graph" == argName) {
+        printSAMGraph = true;
+    }
     else if ("-print-nocolor" == argName) {
       color = false;
     }
@@ -1021,7 +1029,7 @@ int main(int argc, char* argv[]) {
   }
 
   // Print compute is the default if nothing else was asked for
-  if (!printAssemble && !printEvaluate && !printIterationGraph &&
+  if (!printAssemble && !printEvaluate && !printIterationGraph && !printSAMGraph &&
       !writeCompute && !writeAssemble && !writeKernels && !readKernels &&
       !printKernels && !loaded) {
     printCompute = true;
@@ -1373,6 +1381,27 @@ int main(int argc, char* argv[]) {
     hasPrinted = true;
   }
 
+  SAMGraph samGraph;
+  if (printSAMGraph) {
+      samGraph = SAMGraph::make(tensor.getAssignment());
+      if (hasPrinted) {
+          cout << endl << endl;
+      }
+      cout << endl << endl;
+      cout << "SAM GRAPH" << endl;
+      samGraph.printInputIteration(cout);
+      cout << endl << endl;
+      samGraph.printContractions(cout);
+      cout << endl << endl;
+      samGraph.printComputation(cout);
+      cout << endl << endl;
+      samGraph.printOutputIteration(cout);
+
+      cout << endl;
+      cout << samGraph << endl;
+      hasPrinted = true;
+  }
+
   IterationGraph iterationGraph;
   if (printIterationGraph) {
     iterationGraph = IterationGraph::make(tensor.getAssignment());
@@ -1383,6 +1412,8 @@ int main(int argc, char* argv[]) {
       cout << endl << endl;
     }
     iterationGraph.printAsDot(cout);
+    cout << endl << endl;
+    cout << iterationGraph << endl;
     hasPrinted = true;
   }
 

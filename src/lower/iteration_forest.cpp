@@ -170,6 +170,10 @@ bool IterationForest::hasParent(const IndexVar& var) const {
   return util::contains(parents, var);
 }
 
+bool IterationForest::hasChildren(const IndexVar& var) const {
+    return util::contains(children, var);
+}
+
 const IndexVar& IterationForest::getParent(const IndexVar& var) const {
   taco_iassert(hasParent(var)) <<
       "Attempting to get the parent of " << var  << " which has no no parent";
