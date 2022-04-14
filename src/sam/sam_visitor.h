@@ -3,6 +3,7 @@
 
 namespace taco {
 namespace sam {
+    class SamIR;
 
     struct FiberLookupNode;
     struct FiberWriteNode;
@@ -19,7 +20,8 @@ namespace sam {
     class SAMVisitorStrict {
     public:
         virtual ~SAMVisitorStrict();
-//        void visit(const SamIRNode &);
+
+        void visit(const SamIR& sam);
 
         virtual void visit(const FiberLookupNode *) = 0;
         virtual void visit(const FiberWriteNode *) = 0;

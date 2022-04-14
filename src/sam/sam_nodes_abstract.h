@@ -10,7 +10,8 @@
 namespace taco {
 namespace sam {
 
-class SamVisitorStrict;
+class SAMVisitorStrict;
+class SamIR;
 
 enum class SamNodeType {
     FiberLookup,
@@ -31,17 +32,15 @@ struct SAMNode : public util::Manageable<SAMNode>,
 public:
     SAMNode() = default;
 
-    explicit SAMNode(SamNodeType _type) : _type_info(_type) {}
-
     virtual ~SAMNode() = default;
 
-    virtual void accept(SamVisitorStrict *) const = 0;
+    virtual void accept(SAMVisitorStrict *) const = 0;
 
-    virtual std::vector<SAMNode> getInputs() = 0;
+    virtual std::vector<SamIR> getInputs() const = 0;
 
-    virtual std::vector<SAMNode> getOutputs() = 0;
+    virtual std::vector<SamIR> getOutputs() const = 0;
 
-    virtual SamNodeType type_info() const;
+    SamNodeType type_info() const;
 
 protected:
     SamNodeType _type_info;

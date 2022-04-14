@@ -16,12 +16,26 @@ namespace sam {
 struct FiberLookupNode : public SAMNode {
     FiberLookupNode() : SAMNode() {}
 
-    FiberLookupNode(const SamIR& in_ref, const SamIR& out_ref, const SamIR& out_crd)
-            : SAMNode(), in_ref(in_ref), out_ref(out_ref), out_crd(out_crd) {}
+    FiberLookupNode(const SamIR& in_ref, const IndexVar& i,
+                    const TensorVar& tensorVar, int& mode)
+            : FiberLookupNode(in_ref, nullptr, nullptr, i, tensorVar, mode) {
+    }
 
-    void accept(SAMVisitorStrict* v) const {
+    FiberLookupNode(const SamIR& in_ref, const SamIR& out_ref, const SamIR& out_crd, const IndexVar& i,
+                    const TensorVar& tensorVar, int& mode)
+            : SAMNode(), in_ref(in_ref), out_ref(out_ref), out_crd(out_crd), tensorVar(tensorVar), mode(mode), i(i) {
+        taco_iassert(mode < tensorVar.getOrder());
+        modeFormat = tensorVar.getFormat().getModeFormats().at(mode);
+    }
+
+    void accept(SAMVisitorStrict* v) const override{
         v->visit(this);
     }
+
+    std::vector<SamIR> getInputs() const override;
+
+    std::vector<SamIR> getOutputs() const override;
+
     // Inputs
     SamIR in_ref;
     //Outputs
@@ -32,8 +46,8 @@ struct FiberLookupNode : public SAMNode {
     TensorVar tensorVar;
     /// Mode format for this fiber lookup block
     ModeFormat modeFormat;
-    IndexVar i;
     int mode = 0;
+    IndexVar i;
 
     /// Dimension of this fiber lookup
     int dim = 0;
@@ -45,28 +59,65 @@ struct FiberLookupNode : public SAMNode {
 
 };
 
-struct FiberWrite : public SAMNode {
+struct FiberWriteNode : public SAMNode {
+    FiberWriteNode() : SAMNode() {}
+
+    FiberWriteNode(const SamIR& in_crd, IndexVar& i,
+                   const TensorVar& tensorVar, int mode)
+            : FiberWriteNode(in_crd, i, tensorVar, mode, true, false) {
+    }
+
+    FiberWriteNode(const SamIR& in_crd, IndexVar& i,
+                   const TensorVar& tensorVar, int mode, bool sink, bool vals)
+            : SAMNode(), in_crd(in_crd), tensorVar(tensorVar), mode(mode), i(i), sink(sink), vals(vals) {
+        taco_iassert(mode < tensorVar.getOrder());
+        modeFormat = tensorVar.getFormat().getModeFormats().at(mode);
+    }
+
+
+    void accept(SAMVisitorStrict* v) const override {
+        v->visit(this);
+    }
+
+    std::vector<SamIR> getInputs() const override;
+
+    std::vector<SamIR> getOutputs() const override;
+
     // Inputs
     SamIR in_crd;
     // Outputs
     // TODO: figure out if write scanners should have outputs (for workspaces)
 
     // Metadata
+    TensorVar tensorVar;
+    int mode = 0;
+    ModeFormat modeFormat;
+    IndexVar i;
+
     /// Dimension of this fiber lookup
     int dim = 0;
     /// If this fiber write is a SAM graph sink (i.e. stream data back to the end-user as final result)
     /// This is used in the AHA backend example for glb mode
-    bool sink = false;
+    bool sink = true;
     bool vals = false;
-    ModeFormat modeFormat;
-    IndexVar i;
-    int rank;
-    TensorVar tensorVar;
 
     static const SamNodeType _type_info = SamNodeType::FiberWrite;
 };
 
-struct Repeat : public SAMNode {
+/*
+struct RepeatNode : public SAMNode {
+    RepeatNode() : SAMNode() {}
+
+    RepeatNode(const SamIR& in_crd, const SamIR& in_repsig,
+               const TensorVar& tensorVar, const IndexVar& i) :
+               RepeatNode(in_crd, in_repsig, nullptr, tensorVar, i) {}
+
+    RepeatNode(const SamIR& in_crd, const SamIR& in_repsig, const SamIR& out_crd,
+               const TensorVar& tensorVar, const IndexVar& i)
+            : SAMNode(), in_crd(in_crd), in_repsig(in_repsig), out_crd(out_crd),
+            tensorVar(tensorVar), i(i) {
+    }
+
     // Inputs
     SamIR in_crd;
     SamIR in_repsig;
@@ -74,60 +125,78 @@ struct Repeat : public SAMNode {
     SamIR out_crd;
 
     // Metadata
-    // None
+    TensorVar tensorVar;
+    IndexVar i;
 
     static const SamNodeType _type_info = SamNodeType::Repeat;
 };
 
-struct RepeatSigGen : public SAMNode {
+struct RepeatSigGenNode : public SAMNode {
+    RepeatSigGenNode() : SAMNode() {}
+
+    RepeatSigGenNode(const SamIR& in_crd, const SamIR& out_repsig,
+                     TensorVar& tensorVar, const IndexVar& i) : SAMNode(), in_crd(in_crd), out_repsig(out_repsig),
+                     tensorVar(tensorVar), i(i) {}
+
     // Inputs
     SamIR in_crd;
     // No Outputs
     SamIR out_repsig;
 
     // Metadata
-    // None
+    TensorVar tensorVar;
+    IndexVar i;
 
     static const SamNodeType _type_info = SamNodeType::RepeatSigGen;
 };
 
-struct Intersect : public SAMNode {
+struct JoinerNode : public SAMNode {
+    JoinerNode() : SAMNode() {}
+
+    JoinerNode(SamIR& in_a_crd, SamIR& in_a_ref, SamIR& in_b_crd, SamIR& in_b_ref,
+            SamIR& out_crd, SamIR& out_a_ref, SamIR& out_b_ref) : SAMNode(),
+    in_a_crd(in_a_crd), in_a_ref(in_a_ref),
+    in_b_crd(in_b_crd), in_b_ref(in_b_ref),
+    out_crd(out_crd), out_a_ref(out_a_ref), out_b_ref(out_b_ref) {}
     // Inputs
     SamIR in_a_crd;
-    SamIR in_b_crd;
     SamIR in_a_ref;
+    SamIR in_b_crd;
     SamIR in_b_ref;
 
     // No Outputs
+    SamIR out_crd;
     SamIR out_a_ref;
     SamIR out_b_ref;
-    SamIR out_crd;
 
-    // Metadata
-    // None
+    // Metadata: None
+};
+
+struct IntersectNode : public JoinerNode {
+    IntersectNode() : JoinerNode() {}
+
+    IntersectNode(SamIR& in_a_crd, SamIR& in_a_ref, SamIR& in_b_crd, SamIR& in_b_ref,
+                  SamIR& out_crd, SamIR& out_a_ref, SamIR& out_b_ref) : JoinerNode(
+                  in_a_crd, in_a_ref,
+                  in_b_crd, in_b_ref,
+                  out_crd, out_a_ref, out_b_ref) {}
 
     static const SamNodeType _type_info = SamNodeType::Intersect;
 };
 
-struct Union : public SAMNode {
-    // Inputs
-    SamIR in_a_crd;
-    SamIR in_b_crd;
-    SamIR in_a_ref;
-    SamIR in_b_ref;
+struct UnionNode : public JoinerNode {
+    UnionNode() : JoinerNode() {}
 
-    // No Outputs
-    SamIR out_a_ref;
-    SamIR out_b_ref;
-    SamIR out_crd;
-
-    // Metadata
-    // None
+    UnionNode(SamIR& in_a_crd, SamIR& in_a_ref, SamIR& in_b_crd, SamIR& in_b_ref,
+            SamIR& out_crd, SamIR& out_a_ref, SamIR& out_b_ref) : JoinerNode(
+            in_a_crd, in_a_ref,
+            in_b_crd, in_b_ref,
+            out_crd, out_a_ref, out_b_ref) {}
 
     static const SamNodeType _type_info = SamNodeType::Union;
 };
 
-struct Array : public SAMNode {
+struct ArrayNode : public SAMNode {
     // Inputs
     SamIR in_ref;
     // No Outputs
@@ -141,7 +210,7 @@ struct Array : public SAMNode {
     static const SamNodeType _type_info = SamNodeType::Array;
 };
 
-struct Mul : public SAMNode {
+struct MulNode : public SAMNode {
     // Inputs
     SamIR in_a_val;
     SamIR in_b_val;
@@ -154,7 +223,7 @@ struct Mul : public SAMNode {
     static const SamNodeType _type_info = SamNodeType::Mul;
 };
 
-struct Add : public SAMNode {
+struct AddNode : public SAMNode {
     // Inputs
     SamIR in_a_val;
     SamIR in_b_val;
@@ -167,7 +236,7 @@ struct Add : public SAMNode {
     static const SamNodeType _type_info = SamNodeType::Add;
 };
 
-struct Reduce : public SAMNode {
+struct ReduceNode : public SAMNode {
     // Inputs
     SamIR in_val;
     // No Outputs
@@ -179,7 +248,7 @@ struct Reduce : public SAMNode {
     static const SamNodeType _type_info = SamNodeType::Reduce;
 };
 
-struct SparseAccumulator : public SAMNode {
+struct SparseAccumulatorNode : public SAMNode {
     // Inputs
     SamIR in_val;
     // TODO: need to parameterize coordinate streams...
@@ -193,25 +262,27 @@ struct SparseAccumulator : public SAMNode {
     static const SamNodeType _type_info = SamNodeType::SparseAccumulator;
 };
 
-        /// Returns true if expression e is of type E.
-        template <typename E>
-        inline bool isa(const SAMNode* e) {
-            return e != nullptr && dynamic_cast<const E*>(e) != nullptr;
-        }
+*/
+
+/// Returns true if expression e is of type E.
+template <typename E>
+inline bool isa(const SAMNode* e) {
+    return e != nullptr && dynamic_cast<const E*>(e) != nullptr;
+}
 
 /// Casts the expression e to type E.
-        template <typename E>
-        inline const E* to(const SAMNode* e) {
-            taco_iassert(isa<E>(e)) <<
-                                    "Cannot convert " << typeid(e).name() << " to " << typeid(E).name();
-            return static_cast<const E*>(e);
-        }
+template <typename E>
+inline const E* to(const SAMNode* e) {
+    taco_iassert(isa<E>(e)) <<
+                            "Cannot convert " << typeid(e).name() << " to " << typeid(E).name();
+    return static_cast<const E*>(e);
+}
 
-        template <typename I>
-        inline const typename I::Node* getNode(const I& sam) {
-            taco_iassert(isa<typename I::Node>(sam.ptr));
-            return static_cast<const typename I::Node*>(sam.ptr);
-        }
+template <typename I>
+inline const typename I::Node* getNode(const I& sam) {
+    taco_iassert(isa<typename I::Node>(sam.ptr));
+    return static_cast<const typename I::Node*>(sam.ptr);
+}
 
 }
 }
