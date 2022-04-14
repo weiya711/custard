@@ -5,6 +5,7 @@ using namespace std;
 
 namespace taco {
 namespace sam {
+
 // class IndexNotationVisitorStrict
     SAMVisitorStrict::~SAMVisitorStrict() {
     }
@@ -12,16 +13,18 @@ namespace sam {
     SAMVisitor::~SAMVisitor() {
     }
 
-//    void SAMVisitorStrict::visit(const SamIRNode &obj) {
-//        obj.accept(this);
-//    }
+    void SAMVisitorStrict::visit(const SamIR& sam) {
+        sam.accept(this);
+    }
 
     void SAMVisitor::visit(const FiberLookupNode *op) {
-
+        op->in_ref.accept(this);
+        op->out_crd.accept(this);
+        op->out_ref.accept(this);
     }
 
     void SAMVisitor::visit(const FiberWriteNode *op) {
-
+        op->in_crd.accept(this);
     }
 
 
