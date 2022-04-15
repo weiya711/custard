@@ -1397,6 +1397,10 @@ int main(int argc, char* argv[]) {
       cout << endl << endl;
       samGraph.printOutputIteration(cout);
 
+      cout << endl << endl;
+      samGraph.printInputIterationAsDot(cout);
+
+
       cout << endl;
       cout << samGraph << endl;
       hasPrinted = true;

@@ -15,6 +15,11 @@ namespace taco {
 namespace sam {
 
     struct FiberLookupNode;
+    struct FiberWriteNode;
+    struct RepeatNode;
+    struct RootNode;
+    struct IntersectNode;
+    struct UnionNode;
 
     class SamIR;
     class SAMVisitorStrict;
@@ -47,23 +52,88 @@ namespace sam {
 
         FiberLookup(const FiberLookupNode *);
 
-        FiberLookup(SamIR in_ref, IndexVar i, TensorVar tensorVar, int mode);
+        FiberLookup(SamIR in_ref, IndexVar i, TensorVar tensorVar, int mode, bool root=false, bool source=true);
 
-        FiberLookup(SamIR in_ref, SamIR out_ref, SamIR out_crd, IndexVar i, TensorVar tensorVar, int mode);
-
-        SamIR getInRef();
-        void setInRef(SamIR in_ref);
-
-        void setOutRef(SamIR out_ref);
-        SamIR getOutRef();
-
-        void setOutCrd(SamIR out_crd);
-        SamIR getOutCrd();
+        FiberLookup(SamIR in_ref, SamIR out_ref, SamIR out_crd, IndexVar i, TensorVar tensorVar, int mode, bool root=false, bool source=true);
 
         typedef FiberLookupNode Node;
 
+        bool outputsDefined() const;
+
+        SamIR getInRef() const;
+
+        SamIR getOutRef() const;
+        void setOutRef();
+
+        SamIR getOutCrd() const;
+        void setOutCrd();
+
+        TensorVar getTensorVar() const;
+
+        IndexVar getIndexVar() const;
     };
 
+    class FiberWrite : public SamIR {
+    public:
+        FiberWrite() = default;
+
+        explicit FiberWrite(const FiberWriteNode *);
+
+        FiberWrite(SamIR in_crd, IndexVar i, TensorVar tensorVar, int mode, bool sink=true, bool vals=false);
+
+        typedef FiberWriteNode Node;
+
+    };
+
+    class Repeat : public SamIR {
+    public:
+        Repeat() = default;
+
+        explicit Repeat(const RepeatNode *);
+
+        Repeat(SamIR in_crd, SamIR in_repsig, IndexVar i, TensorVar tensorVar, bool root=false);
+
+        Repeat(SamIR in_crd, SamIR in_repsig, SamIR out_ref, IndexVar i, TensorVar tensorVar, bool root=false);
+
+        typedef RepeatNode Node;
+
+    };
+
+    class Root : public SamIR {
+    public:
+        Root() = default;
+
+        explicit Root(const RootNode *);
+
+        Root(std::vector<SamIR> nodes);
+
+        typedef RootNode Node;
+
+    };
+
+    class Intersect : public SamIR {
+    public:
+        Intersect() = default;
+
+        explicit Intersect(const IntersectNode *);
+
+        Intersect(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i);
+
+        typedef IntersectNode Node;
+
+    };
+
+    class Union : public SamIR {
+    public:
+        Union() = default;
+
+        explicit Union(const UnionNode *);
+
+        Union(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i);
+
+        typedef UnionNode Node;
+
+    };
 }
 }
 
