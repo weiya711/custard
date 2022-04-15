@@ -52,9 +52,9 @@ namespace sam {
 
         FiberLookup(const FiberLookupNode *);
 
-        FiberLookup(SamIR in_ref, IndexVar i, TensorVar tensorVar, int mode, bool root=false, bool source=true);
 
-        FiberLookup(SamIR in_ref, SamIR out_ref, SamIR out_crd, IndexVar i, TensorVar tensorVar, int mode, bool root=false, bool source=true);
+        FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i, TensorVar tensorVar, int mode, int nodeID,
+                    bool root=false, bool source=true);
 
         typedef FiberLookupNode Node;
 
@@ -63,10 +63,8 @@ namespace sam {
         SamIR getInRef() const;
 
         SamIR getOutRef() const;
-        void setOutRef();
 
         SamIR getOutCrd() const;
-        void setOutCrd();
 
         TensorVar getTensorVar() const;
 
@@ -79,7 +77,7 @@ namespace sam {
 
         explicit FiberWrite(const FiberWriteNode *);
 
-        FiberWrite(SamIR in_crd, IndexVar i, TensorVar tensorVar, int mode, bool sink=true, bool vals=false);
+        FiberWrite(IndexVar i, TensorVar tensorVar, int mode, int nodeID, bool sink=true, bool vals=false);
 
         typedef FiberWriteNode Node;
 
@@ -91,9 +89,7 @@ namespace sam {
 
         explicit Repeat(const RepeatNode *);
 
-        Repeat(SamIR in_crd, SamIR in_repsig, IndexVar i, TensorVar tensorVar, bool root=false);
-
-        Repeat(SamIR in_crd, SamIR in_repsig, SamIR out_ref, IndexVar i, TensorVar tensorVar, bool root=false);
+        Repeat(SamIR out_ref, IndexVar i, TensorVar tensorVar, int nodeID, bool root=false);
 
         typedef RepeatNode Node;
 
@@ -117,7 +113,7 @@ namespace sam {
 
         explicit Intersect(const IntersectNode *);
 
-        Intersect(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i);
+        Intersect(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i, int nodeID);
 
         typedef IntersectNode Node;
 
@@ -129,7 +125,7 @@ namespace sam {
 
         explicit Union(const UnionNode *);
 
-        Union(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i);
+        Union(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i, int nodeID);
 
         typedef UnionNode Node;
 

@@ -7,6 +7,7 @@
 
 #include <ostream>
 #include <map>
+#include <vector>
 #include "sam_visitor.h"
 
 namespace taco {
@@ -79,10 +80,10 @@ namespace sam {
 
     private:
         std::ostream &os;
-        int id = 0;
         bool prettyPrint = true;
         std::string tab = "    ";
         std::string name = "SAM";
+        std::vector<int> printedNodes;
     };
 
     class SAMDotEdgePrinter : public SAMVisitor {
@@ -104,11 +105,10 @@ namespace sam {
         void visit(const JoinerNode *) override;
     private:
         std::ostream &os;
-        int id = 0;
         bool prettyPrint = true;
         std::string tab = "    ";
-        std::string edgeType = "";
-
+        std::string edgeType;
+        std::vector<int> printedNodes;
         std::map<std::string, std::string> edgeStyle = {{"ref", "style=bold"}, {"crd", "style=dashed"},
                                                         {"repsig", "style=dotted"}, {"bv", "style=dashed"}};
     };

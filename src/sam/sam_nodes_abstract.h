@@ -46,6 +46,8 @@ public:
 
     SamNodeType type_info() const;
 
+    bool printed = false;
+
 protected:
     SamNodeType _type_info;
 };
