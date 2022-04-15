@@ -7,7 +7,6 @@ namespace sam {
     // FiberLookupNode
     vector<SamIR> FiberLookupNode::getInputs() const {
         vector<SamIR> result;
-        result.push_back(in_ref);
         return result;
     }
 
@@ -48,7 +47,6 @@ namespace sam {
     // FiberWriteNode
     vector<SamIR> FiberWriteNode::getInputs() const {
         vector<SamIR> result;
-        result.push_back(in_crd);
         return result;
     }
 

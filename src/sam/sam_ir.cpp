@@ -22,21 +22,12 @@ namespace sam {
     FiberLookup::FiberLookup(const FiberLookupNode *n) : SamIR(n) {
     }
 
-    FiberLookup::FiberLookup(SamIR in_ref, IndexVar i, TensorVar tensorVar, int mode, bool root, bool source) :
-    FiberLookup(new FiberLookupNode(in_ref, i, tensorVar, mode, root, source)) {
-    }
-
-    FiberLookup::FiberLookup(SamIR in_ref, SamIR out_ref, SamIR out_crd, IndexVar i,
-                             TensorVar tensorVar, int mode, bool root, bool source) :
-    FiberLookup(new FiberLookupNode(in_ref, out_ref, out_crd, i, tensorVar, mode, root, source)) {
-    }
+    FiberLookup::FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i,
+                             TensorVar tensorVar, int mode, int nodeID, bool root, bool source) :
+    FiberLookup(new FiberLookupNode(out_ref, out_crd, i, tensorVar, mode, root, source, nodeID)) {}
 
     bool FiberLookup::outputsDefined() const {
         return getOutCrd().defined() and getOutRef().defined();
-    }
-
-    SamIR FiberLookup::getInRef() const {
-        return getNode(*this)->in_ref;
     }
 
     SamIR FiberLookup::getOutRef() const {
@@ -58,38 +49,32 @@ namespace sam {
     // FiberWrite
     FiberWrite::FiberWrite(const FiberWriteNode *n) : SamIR(n) {}
 
-    FiberWrite::FiberWrite(SamIR in_crd, IndexVar i, TensorVar tensorVar, int mode, bool sink, bool vals) :
-    FiberWrite(new FiberWriteNode(in_crd, i, tensorVar, mode, sink, vals)) {}
+    FiberWrite::FiberWrite(IndexVar i, TensorVar tensorVar, int mode, int nodeID, bool sink, bool vals) :
+    FiberWrite(new FiberWriteNode(i, tensorVar, mode, sink, vals, nodeID)) {}
 
     // Repeat
     Repeat::Repeat(const RepeatNode *n) : SamIR(n){
     }
 
-    Repeat::Repeat(SamIR in_crd, SamIR in_repsig, IndexVar i, TensorVar tensorVar, bool root) :
-            Repeat(new RepeatNode(in_crd, in_repsig, i, tensorVar, root)) {
-
-    }
-
-    Repeat::Repeat(SamIR in_crd, SamIR in_repsig, SamIR out_ref, IndexVar i, TensorVar tensorVar, bool root) :
-    Repeat(new RepeatNode(in_crd, in_repsig, out_ref, i, tensorVar, root)) {
+    Repeat::Repeat(SamIR out_ref, IndexVar i, TensorVar tensorVar, int nodeID, bool root) :
+    Repeat(new RepeatNode(out_ref, i, tensorVar, root, nodeID)) {
     }
 
     // Intersect
     Intersect::Intersect(const IntersectNode *n) : SamIR(n){
     }
 
-    Intersect::Intersect(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i) :
-            Intersect(new IntersectNode(out_crd, out_a_ref, out_b_ref, i)) {
+    Intersect::Intersect(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i, int nodeID) :
+            Intersect(new IntersectNode(out_crd, out_a_ref, out_b_ref, i, nodeID)) {
     }
 
     // Union
     Union::Union(const UnionNode *n) : SamIR(n){
     }
 
-    Union::Union(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i) :
-            Union(new UnionNode(out_crd, out_a_ref, out_b_ref, i)) {
+    Union::Union(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i, int nodeID) :
+            Union(new UnionNode(out_crd, out_a_ref, out_b_ref, i, nodeID)) {
     }
-
 
     template <> bool isa<FiberLookup>(SamIR s) {
         return isa<FiberLookupNode>(s.ptr);
