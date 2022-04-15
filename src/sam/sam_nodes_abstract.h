@@ -14,6 +14,7 @@ class SAMVisitorStrict;
 class SamIR;
 
 enum class SamNodeType {
+    Root,
     FiberLookup,
     FiberWrite,
     Repeat,
@@ -25,6 +26,7 @@ enum class SamNodeType {
     Add,
     Reduce,
     SparseAccumulator
+
 };
 
 struct SAMNode : public util::Manageable<SAMNode>,
@@ -39,6 +41,8 @@ public:
     virtual std::vector<SamIR> getInputs() const = 0;
 
     virtual std::vector<SamIR> getOutputs() const = 0;
+
+    virtual std::string getName() const = 0;
 
     SamNodeType type_info() const;
 

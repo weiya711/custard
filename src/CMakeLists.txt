@@ -15,7 +15,7 @@ foreach(dir ${TACO_SRC_DIRS})
 endforeach()
 
 set(TACO_HEADERS ${TACO_HEADERS} ../include/taco/ir_tags.h)
-set(TACO_SOURCES ${TACO_SOURCES} ir_tags.cpp)
+set(TACO_SOURCES ${TACO_SOURCES} ir_tags.cpp sam/sam_printer.cpp sam/sam_printer.h)
 
 add_definitions(${TACO_DEFINITIONS})
 include_directories(${TACO_SRC_DIR})

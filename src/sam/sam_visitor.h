@@ -5,10 +5,13 @@ namespace taco {
 namespace sam {
     class SamIR;
 
+
+    struct RootNode;
     struct FiberLookupNode;
     struct FiberWriteNode;
     struct RepeatNode;
     struct RepeatSigGenNode;
+    struct JoinerNode;
     struct IntersectNode;
     struct UnionNode;
     struct ArrayNode;
@@ -23,6 +26,7 @@ namespace sam {
 
         void visit(const SamIR& sam);
 
+        virtual void visit(const RootNode *) = 0;
         virtual void visit(const FiberLookupNode *) = 0;
         virtual void visit(const FiberWriteNode *) = 0;
 
@@ -48,12 +52,15 @@ namespace sam {
 
         using SAMVisitorStrict::visit;
 
+        virtual void visit(const RootNode *);
+
         virtual void visit(const FiberLookupNode *);
         virtual void visit(const FiberWriteNode *);
 
         virtual void visit(const RepeatNode *);
         virtual void visit(const RepeatSigGenNode *);
 
+        virtual void visit(const JoinerNode *);
         virtual void visit(const IntersectNode *);
         virtual void visit(const UnionNode *);
 

@@ -7,6 +7,7 @@
 #include "lower/iteration_graph.h"
 #include "sam_nodes.h"
 #include "taco/format.h"
+#include "sam_ir.h"
 
 
 namespace taco {
@@ -110,8 +111,13 @@ namespace taco {
         /// Generate a SAM graph as a dot file for json export.
         void generateDotJSON(std::ostream &);
 
+        void printInputIterationAsDot(std::ostream& os);
 
-        /// Print a SAM graph.
+        sam::SamIR makeInputIterationGraph();
+
+
+
+            /// Print a SAM graph.
         friend std::ostream &operator<<(std::ostream &, const SAMGraph &);
 
     private:

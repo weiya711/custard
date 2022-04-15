@@ -13,6 +13,7 @@
 #include "lower/tensor_path.h"
 #include "taco/util/strings.h"
 #include "taco/util/collections.h"
+#include "sam_printer.h"
 
 using namespace std;
 
@@ -315,6 +316,144 @@ namespace taco {
         return result;
     }
 
+    SamIR SAMGraph::makeInputIterationGraph() {
+        // Output Assignment
+        map<IndexVar, SamIR> resultWriteIRNodes;
+        map<IndexVar, bool> resultHasSource;
+        auto resultVars = getResultTensorPath().getVariables();
+        int mode = (int)resultVars.size() - 1;
+        for (int count = 0; count < (int) getOrderedIndexVars().size(); count++) {
+            IndexVar indexvar = getOrderedIndexVars().at(getOrderedIndexVars().size() - 1 - count);
+            if (std::count(resultVars.begin(), resultVars.end(), indexvar) > 0) {
+                auto node = FiberWrite(nullptr, indexvar, getResultTensorPath().getAccess().getTensorVar(), mode,
+                                       true);
+                mode--;
+                resultWriteIRNodes[indexvar] = node;
+                resultHasSource[indexvar] = false;
+            }
+
+        }
+
+        // FIXME: this code assumes 2 input operands at a time
+        map<vector<TensorVar>, bool> contractionType;
+        match(content->expr,
+              function<void(const taco::MulNode*,Matcher*)>([&](
+                      const taco::MulNode* op, Matcher* ctx) {
+                  if (isa<Access>(op->a) && isa<Access>(op->b)) {
+                      vector<TensorVar> tensors;
+                      tensors.push_back(to<Access>(op->a).getTensorVar());
+                      tensors.push_back(to<Access>(op->b).getTensorVar());
+                      contractionType[tensors] = true;
+                  } else {
+                      ctx->match(op->a);
+                      ctx->match(op->b);
+                  }
+              }),
+              function<void(const taco::AddNode*,Matcher*)>([&](
+                      const taco::AddNode* op, Matcher* ctx) {
+                  if (isa<Access>(op->a) && isa<Access>(op->b)) {
+                      vector<TensorVar> tensors;
+                      tensors.push_back(to<Access>(op->a).getTensorVar());
+                      tensors.push_back(to<Access>(op->b).getTensorVar());
+                      contractionType[tensors] = true;
+                  } else {
+                      ctx->match(op->a);
+                      ctx->match(op->b);
+                  }
+              })
+        );
+
+        std::map<IndexVar, std::vector<TensorVar>> contractions;
+        for (const auto& indexvar : getOrderedIndexVars()) {
+            vector<TensorVar> tensorList;
+            for (auto& tensorPath : getTensorPaths()) {
+                auto vars = tensorPath.getVariables();
+                auto tensor = tensorPath.getAccess().getTensorVar();
+
+                if (std::count(vars.begin(), vars.end(), indexvar) > 0) {
+                    tensorList.emplace_back(tensor);
+                }
+            }
+            contractions[indexvar] = tensorList;
+        }
+
+        // Input Iteration without Contractions
+        int numIndexVars = (int) getOrderedIndexVars().size();
+
+        map<IndexVar, vector<SamIR>> nodeMap;
+        for (int count = 0; count < numIndexVars; count++) {
+
+            IndexVar indexvar = getOrderedIndexVars().at(numIndexVars - 1 - count);
+            bool isRoot = count == numIndexVars - 1;
+            IndexVar prevIndexVar = count == 0 ? nullptr : getOrderedIndexVars().at(numIndexVars - count);
+
+            auto crdDest = contains(resultHasSource,indexvar) && !resultHasSource.at(indexvar) ?
+                           resultWriteIRNodes.at(indexvar) : nullptr;
+
+            bool hasContraction = contractions.at(indexvar).size() > 1;
+            // FIXME: This will eventually need to be the iteration algebra for fused kernels
+            bool isIntersection = contains(contractionType, contractions.at(indexvar)) &&
+                                  contractionType.at(contractions.at(indexvar));
+
+            // FIXME: Assumes 2 input operands
+            SamIR contractNode;
+            if (hasContraction && isIntersection) {
+                contractNode = prevIndexVar.defined() ?
+                               taco::sam::Intersect(crdDest, nodeMap[prevIndexVar][0], nodeMap[prevIndexVar][1], indexvar) :
+                               taco::sam::Intersect(crdDest, nullptr, nullptr, indexvar);
+            } else if (hasContraction) {
+                contractNode = prevIndexVar.defined() ?
+                               taco::sam::Union(crdDest, nodeMap[prevIndexVar][0], nodeMap[prevIndexVar][1], indexvar) :
+                               taco::sam::Union(crdDest, nullptr, nullptr, indexvar);
+            }
+
+
+            vector<SamIR> nodes;
+            for (int ntp = 0; ntp < (int) getTensorPaths().size(); ntp++) {
+
+                SamIR node;
+                map<IndexVar, SamIR> irNodes;
+
+                TensorPath tensorPath = getTensorPaths().at(ntp);
+                auto tensorVar = tensorPath.getAccess().getTensorVar();
+
+                auto formats = getFormatMapping(tensorPath);
+
+                auto vars = tensorPath.getVariables();
+                auto it = find(vars.begin(), vars.end(), indexvar);
+                mode = it != vars.end() ? (int) distance(vars.begin(), it) : 9999;
+
+                if (std::count(vars.begin(), vars.end(), indexvar) > 0) {
+
+                    if (count == 0) {
+                        node = FiberLookup(nullptr, nullptr, crdDest, indexvar, tensorVar, mode, false, true);
+                    } else {
+                        auto prevSAMNode = hasContraction ? contractNode : nodeMap[prevIndexVar][ntp];
+                        node = FiberLookup(nullptr, prevSAMNode, hasContraction ? contractNode : crdDest,
+                                           indexvar, tensorVar, mode, isRoot, true);
+                    }
+
+                    mode--;
+                } else {
+                    if (count == 0) {
+                        // TODO: add in RSG
+                        node = Repeat(nullptr, nullptr, indexvar, tensorVar, false);
+                    } else {
+                        auto prevSAMNode = nodeMap[prevIndexVar][ntp];
+                        node = Repeat(nullptr, nullptr, prevSAMNode, indexvar, tensorVar, isRoot);
+                    }
+                }
+                nodes.push_back(node);
+
+            }
+            nodeMap[indexvar] = nodes;
+        }
+
+        taco_iassert(numIndexVars > 0);
+        auto root = Root(nodeMap.at(getOrderedIndexVars().at(0)));
+        return root;
+    }
+
     void SAMGraph::printInputIteration(std::ostream& os) {
         for (auto& tensorPath : getTensorPaths()) {
             auto tensorName = tensorPath.getAccess().getTensorVar().getName();
@@ -335,6 +474,16 @@ namespace taco {
             os << endl;
         }
     }
+
+    void SAMGraph::printInputIterationAsDot(std::ostream& os) {
+        auto sam = makeInputIterationGraph();
+        SAMDotNodePrinter printer(os);
+        printer.print(sam);
+
+        SAMDotEdgePrinter printerEdge(os);
+        printerEdge.print(sam);
+    }
+
     void SAMGraph::printAsDot(std::ostream& os) {
         os << "digraph {";
         os << "\n root [label=\"\" shape=none]";

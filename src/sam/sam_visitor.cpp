@@ -17,27 +17,52 @@ namespace sam {
         sam.accept(this);
     }
 
+    void SAMVisitor::visit(const RootNode *op) {
+        for (auto node : op->nodes) {
+            node.accept(this);
+        }
+    }
+
     void SAMVisitor::visit(const FiberLookupNode *op) {
-        op->in_ref.accept(this);
-        op->out_crd.accept(this);
-        op->out_ref.accept(this);
+        if (op->out_crd.defined()) {
+            op->out_crd.accept(this);
+        }
+
+        if (op->out_ref.defined()) {
+            op->out_ref.accept(this);
+        }
     }
 
     void SAMVisitor::visit(const FiberWriteNode *op) {
-        op->in_crd.accept(this);
     }
 
 
-    void SAMVisitor::visit(const IntersectNode *op) {
+    void SAMVisitor::visit(const JoinerNode *op) {
+        if (op->out_crd.defined()) {
+            op->out_crd.accept(this);
+        }
 
+        if (op->out_a_ref.defined()) {
+            op->out_a_ref.accept(this);
+        }
+
+        if (op->out_b_ref.defined()) {
+            op->out_b_ref.accept(this);
+        }
+    }
+
+    void SAMVisitor::visit(const IntersectNode *op) {
+        visit(static_cast<const JoinerNode*>(op));
     }
 
     void SAMVisitor::visit(const UnionNode *op) {
-
+        visit(static_cast<const JoinerNode*>(op));
     }
 
     void SAMVisitor::visit(const RepeatNode *op) {
-
+        if (op->out_ref.defined()) {
+            op->out_ref.accept(this);
+        }
     }
 
     void SAMVisitor::visit(const RepeatSigGenNode *op) {
