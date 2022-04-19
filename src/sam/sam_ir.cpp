@@ -64,16 +64,16 @@ namespace sam {
     Intersect::Intersect(const IntersectNode *n) : SamIR(n){
     }
 
-    Intersect::Intersect(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i, int nodeID) :
-            Intersect(new IntersectNode(out_crd, out_a_ref, out_b_ref, i, nodeID)) {
+    Intersect::Intersect(SamIR out_crd, vector<SamIR> out_refs, IndexVar i, int nodeID) :
+            Intersect(new IntersectNode(out_crd, out_refs, i, nodeID)) {
     }
 
     // Union
     Union::Union(const UnionNode *n) : SamIR(n){
     }
 
-    Union::Union(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i, int nodeID) :
-            Union(new UnionNode(out_crd, out_a_ref, out_b_ref, i, nodeID)) {
+    Union::Union(SamIR out_crd, vector<SamIR> out_refs, IndexVar i, int nodeID) :
+            Union(new UnionNode(out_crd, out_refs, i, nodeID)) {
     }
 
     template <> bool isa<FiberLookup>(SamIR s) {
@@ -105,6 +105,13 @@ namespace sam {
     Broadcast::Broadcast(std::vector<SamIR> outputs, SamEdgeType type, int nodeID) :
     Broadcast(new BroadcastNode(outputs, type, nodeID)){
 
+    }
+
+    Array::Array(const ArrayNode *n) : SamIR(n){
+    }
+
+    Array::Array(SamIR out_val, TensorVar tensorVar, int nodeID) :
+    Array(new ArrayNode(out_val, tensorVar, nodeID)) {
     }
 }
 }

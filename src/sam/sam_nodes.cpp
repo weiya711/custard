@@ -13,7 +13,12 @@ namespace sam {
 
     std::string FiberWriteNode::getName() const {
         stringstream ss;
-        ss << "FiberWrite " << i.getName() << ": " << tensorVar.getName() << to_string(mode) << "\\n" << modeFormat.getName();
+        if (vals) {
+            ss << "FiberWrite Vals: " << tensorVar.getName();
+        } else {
+            ss << "FiberWrite " << i.getName() << ": " << tensorVar.getName() << to_string(mode) << "\\n"
+               << modeFormat.getName();
+        }
         return ss.str();
     }
 
@@ -38,6 +43,12 @@ namespace sam {
     std::string RepeatSigGenNode::getName() const {
         stringstream ss;
         ss << "RepeatSignalGenerator " << i.getName();
+        return ss.str();
+    }
+
+    std::string ArrayNode::getName() const {
+        stringstream ss;
+        ss << "Array Vals: " << tensorVar.getName();
         return ss.str();
     }
 }

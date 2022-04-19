@@ -69,9 +69,9 @@ namespace sam {
         void visit(const RepeatSigGenNode *) override;
 
         void visit(const JoinerNode *) override;
-//
-//        void visit(const ArrayNode *);
-//
+
+        void visit(const ArrayNode *);
+
 //        void visit(const AddNode *);
 //
 //        void visit(const MulNode *);
@@ -109,6 +109,9 @@ namespace sam {
         void visit(const RepeatSigGenNode *) override;
 
         void visit(const JoinerNode *) override;
+
+        void visit(const ArrayNode *) override;
+
     private:
         std::ostream &os;
         bool prettyPrint = true;

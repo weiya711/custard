@@ -319,16 +319,20 @@ namespace taco {
     SamIR SAMGraph::makeInputIterationGraph() {
         int id = 0;
 
-        vector<TensorVar> inputTensors;
         vector<SamIR> rootNodes;
 
         int numIndexVars = (int)getOrderedIndexVars().size();
 
         // Values Arrays
-        // TODO: make node for Arrays
+        vector<TensorVar> inputTensors;
+        for (auto tensorPath : getTensorPaths()) {
+            inputTensors.push_back(tensorPath.getAccess().getTensorVar());
+        }
+
         map<TensorVar, SamIR> valsArrays;
         for (auto tensor : inputTensors) {
-            auto array = SamIR(); //Array(computea, computeb, tensor)
+            auto array = taco::sam::Array(nullptr, tensor, id);
+            id++;
             valsArrays[tensor] = array;
         }
         auto resultWriteVals = FiberWrite(nullptr, getResultTensorPath().getAccess().getTensorVar(), 0, id,
@@ -339,13 +343,18 @@ namespace taco {
         // Elementwise Compute Operations
         vector<SamNodeType> compute;
         match(content->expr,
-              function<void(const taco::MulNode*)>([&](const taco::MulNode* op) {
+              function<void(const taco::MulNode*,Matcher*)>([&](
+                      const taco::MulNode* op, Matcher* ctx) {
                   compute.push_back(SamNodeType::Mul);
+                  ctx->match(op->a);
+                  ctx->match(op->b);
               }),
-              function<void(const taco::AddNode*)>([&](const taco::AddNode* op) {
+              function<void(const taco::AddNode*,Matcher*)>([&](
+                        const taco::AddNode* op, Matcher* ctx) {
                   compute.push_back(SamNodeType::Add);
-              })
-        );
+                  ctx->match(op->a);
+                  ctx->match(op->b);
+              }));
 
         // Reduction Operations
         auto isInnerReduction = true;
@@ -360,29 +369,6 @@ namespace taco {
                 isInnerReduction = false;
             }
         }
-
-//        vector<SamIR> computeNodes;
-//        for (int count = 0; count < (int)compute.size(); count++) {
-//            auto computeType = compute.at(compute.size() - 1 - count);
-//
-//            SamIR computeNode;
-//            switch (computeType) {
-//                case SamNodeType::Add:
-//                    computeNode = SamIR(); // taco::sam::Add()
-//                    break;
-//                case SamNodeType::Mul:
-//                    break;
-//                case SamNodeType::Reduce:
-//                    break;
-//                case SamNodeType::SparseAccumulator:
-//                    break;
-//                default:
-//                    break;
-//
-//            }
-//            id++;
-//            computeNodes.push_back(computeNode);
-//        }
 
         // Output Assignment
         map<IndexVar, SamIR> resultWriteIRNodes;
@@ -476,7 +462,7 @@ namespace taco {
                 // FIXME: see if repeat nodes are ever a root
                 if (std::count(vars.begin(), vars.end(), indexvar) == 0) {
                     if (count == 0) {
-                        node = Repeat(nullptr, indexvar, tensorVar, id, false);
+                        node = Repeat(valsArrays[tensorVar], indexvar, tensorVar, id, false);
                     } else {
                         auto prevSAMNode = nodeMap[prevIndexVar][ntp];
                         node = Repeat(prevSAMNode, indexvar, tensorVar, id, false);
@@ -511,15 +497,20 @@ namespace taco {
 
             // FIXME: Assumes 2 input operands
             SamIR contractNode;
-            if (hasContraction && isIntersection) {
-                contractNode = prevIndexVar.defined() ?
-                               taco::sam::Intersect(crdDest, nodeMap[prevIndexVar][0], nodeMap[prevIndexVar][1], indexvar, id) :
-                               taco::sam::Intersect(crdDest, nullptr, nullptr, indexvar, id);
-                id++;
-            } else if (hasContraction) {
-                contractNode = prevIndexVar.defined() ?
-                               taco::sam::Union(crdDest, nodeMap[prevIndexVar][0], nodeMap[prevIndexVar][1], indexvar, id) :
-                               taco::sam::Union(crdDest, nullptr, nullptr, indexvar, id);
+            if (hasContraction) {
+                vector<SamIR> contractOuts;
+                if (prevIndexVar.defined()) {
+                    contractOuts = nodeMap[prevIndexVar];
+                } else {
+                    for (auto arrs: valsArrays) {
+                        contractOuts.push_back(arrs.second);
+                    }
+                }
+
+                if (isIntersection)
+                    contractNode = taco::sam::Intersect(crdDest, contractOuts, indexvar, id);
+                else
+                    contractNode = taco::sam::Union(crdDest, contractOuts, indexvar, id);
                 id++;
             }
 
@@ -539,7 +530,7 @@ namespace taco {
                 if (std::count(vars.begin(), vars.end(), indexvar) > 0) {
 
                     if (count == 0) {
-                        node = FiberLookup(contractNode, hasContraction ? contractNode : crdDest,
+                        node = FiberLookup(hasContraction ? contractNode : valsArrays[tensorVar], hasContraction ? contractNode : crdDest,
                                            indexvar, tensorVar, mode,  id, isRoot, true);
                     } else {
                         auto prevSAMNode = hasContraction ? contractNode : nodeMap[prevIndexVar][ntp];
