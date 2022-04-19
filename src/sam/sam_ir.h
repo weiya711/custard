@@ -13,14 +13,15 @@ namespace taco {
     class IndexVar;
 
 namespace sam {
-
+    struct RootNode;
+    struct BroadcastNode;
     struct FiberLookupNode;
     struct FiberWriteNode;
     struct RepeatNode;
-    struct RootNode;
+    struct RepeatSigGenNode;
     struct IntersectNode;
     struct UnionNode;
-    struct BroadcastNode;
+    struct ArrayNode;
 
     class SamIR;
     class SAMVisitorStrict;
@@ -137,7 +138,7 @@ namespace sam {
 
         explicit Intersect(const IntersectNode *);
 
-        Intersect(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i, int nodeID);
+        Intersect(SamIR out_crd, std::vector<SamIR> out_refs, IndexVar i, int nodeID);
 
         typedef IntersectNode Node;
 
@@ -149,9 +150,21 @@ namespace sam {
 
         explicit Union(const UnionNode *);
 
-        Union(SamIR out_crd, SamIR out_a_ref, SamIR out_b_ref, IndexVar i, int nodeID);
+        Union(SamIR out_crd, std::vector<SamIR> out_refs, IndexVar i, int nodeID);
 
         typedef UnionNode Node;
+
+    };
+
+    class Array : public SamIR {
+    public:
+        Array() = default;
+
+        explicit Array(const ArrayNode *);
+
+        Array(SamIR out_val, TensorVar tensorVar, int nodeID);
+
+        typedef ArrayNode Node;
 
     };
 }

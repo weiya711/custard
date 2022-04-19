@@ -48,12 +48,10 @@ namespace sam {
             op->out_crd.accept(this);
         }
 
-        if (op->out_a_ref.defined()) {
-            op->out_a_ref.accept(this);
-        }
-
-        if (op->out_b_ref.defined()) {
-            op->out_b_ref.accept(this);
+        for (auto out_ref : op->out_refs) {
+            if (out_ref.defined()) {
+                out_ref.accept(this);
+            }
         }
     }
 

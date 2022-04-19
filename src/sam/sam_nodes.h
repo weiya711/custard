@@ -170,25 +170,27 @@ struct RepeatNode : public SAMNode {
 
         // No Outputs
         SamIR out_crd;
-        SamIR out_a_ref;
-        SamIR out_b_ref;
+        std::vector<SamIR> out_refs;
 
         // Metadata: None
         IndexVar i;
-
+        int numInputs = 0;
         int nodeID = 0;
+
     protected:
         JoinerNode() : SAMNode() {}
 
-        JoinerNode(SamIR& out_crd, SamIR& out_a_ref, SamIR& out_b_ref, IndexVar& i, int nodeID) :
-        SAMNode(), out_crd(out_crd), out_a_ref(out_a_ref), out_b_ref(out_b_ref), i(i), nodeID(nodeID) {}
+        JoinerNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, int nodeID) :
+        SAMNode(), out_crd(out_crd), out_refs(out_refs), i(i), nodeID(nodeID) {
+            numInputs = (int)out_refs.size();
+        }
     };
 
     struct IntersectNode : public JoinerNode {
         IntersectNode() : JoinerNode() {}
 
-        IntersectNode(SamIR& out_crd, SamIR& out_a_ref, SamIR& out_b_ref, IndexVar& i, int nodeID) :
-        JoinerNode(out_crd, out_a_ref,out_b_ref, i, nodeID) {}
+        IntersectNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, int nodeID) :
+        JoinerNode(out_crd, out_refs, i, nodeID) {}
 
         void accept(SAMVisitorStrict* v) const override {
             v->visit(this);
@@ -205,8 +207,8 @@ struct RepeatNode : public SAMNode {
     struct UnionNode : public JoinerNode {
         UnionNode() : JoinerNode() {}
 
-        UnionNode(SamIR& out_crd, SamIR& out_a_ref, SamIR& out_b_ref, IndexVar& i, int nodeID) :
-        JoinerNode(out_crd, out_a_ref,out_b_ref, i, nodeID) {}
+        UnionNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, int nodeID) :
+        JoinerNode(out_crd, out_refs, i, nodeID) {}
 
         void accept(SAMVisitorStrict* v) const override {
             v->visit(this);
@@ -245,12 +247,25 @@ struct RepeatSigGenNode : public SAMNode {
 };
 
 struct ArrayNode : public SAMNode {
+    ArrayNode() : SAMNode() {}
+
+    ArrayNode(const SamIR& out_val, const TensorVar& tensorVar, int nodeID) :
+            SAMNode(), out_val(out_val), tensorVar(tensorVar), nodeID(nodeID) {}
+
+    void accept(SAMVisitorStrict* v) const override {
+        v->visit(this);
+    }
+
+    std::string getName() const override;
+
     // No Outputs
     SamIR out_val;
 
     // Metadata
-    int vals = true;
+    TensorVar tensorVar;
+    bool vals = true;
 
+    int nodeID = 0;
 
     static const SamNodeType _type_info = SamNodeType::Array;
 };

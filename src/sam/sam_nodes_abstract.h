@@ -36,6 +36,7 @@ enum class SamEdgeType {
     repsig
 };
 
+//FIXME: have this abstract node initialize type_info and nodeID
 struct SAMNode : public util::Manageable<SAMNode>,
                  private util::Uncopyable {
 public:

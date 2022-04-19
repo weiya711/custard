@@ -88,8 +88,13 @@ namespace sam {
             string sink = op->sink ? "_sink" : "";
 
             std::stringstream comment;
-            comment << "\"fiber_write-" << op->i.getName() << "_" << op->tensorVar.getName() << std::to_string(op->mode)
-                    << "_" << op->modeFormat.getName() << sink << "\"";
+            if (op->vals) {
+                comment << "\"fiber_write-vals" << "_" << op->tensorVar.getName() << sink << "\"";
+            } else {
+                comment << "\"fiber_write-" << op->i.getName() << "_" << op->tensorVar.getName()
+                        << std::to_string(op->mode)
+                        << "_" << op->modeFormat.getName() << sink << "\"";
+            }
 
             os << tab;
             os << to_string(op->nodeID) << " [comment=" << comment.str();
@@ -162,13 +167,31 @@ namespace sam {
                 op->out_crd.accept(this);
             }
 
-            if (op->out_a_ref.defined()) {
-                op->out_a_ref.accept(this);
+            for (auto out_ref : op->out_refs) {
+                if (out_ref.defined())
+                    out_ref.accept(this);
+            }
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
+    void SAMDotNodePrinter::visit(const ArrayNode *op) {
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            std::stringstream comment;
+            comment << "\"array-vals_" << op->tensorVar.getName() << "\"";
+
+            os << tab;
+            os << to_string(op->nodeID) << " [comment=" << comment.str();
+            if (prettyPrint) {
+                os << " label=\"" << op->getName() << "\"";
+                os << " color=green2 shape=box style=filled";
+            }
+            os << "]" << endl;
+
+            if (op->out_val.defined()) {
+                op->out_val.accept(this);
             }
 
-            if (op->out_b_ref.defined()) {
-                op->out_b_ref.accept(this);
-            }
         }
         printedNodes.push_back(op->nodeID);
     }
@@ -215,6 +238,7 @@ namespace sam {
                     node.accept(this);
                 }
             }
+            edgeType = "";
         }
         printedNodes.push_back(op->nodeID);
     }
@@ -332,17 +356,36 @@ namespace sam {
                 op->out_crd.accept(this);
             }
 
-            if (op->out_a_ref.defined()) {
-                edgeType = "ref";
-                os << tab << op->nodeID << " -> ";
-                op->out_a_ref.accept(this);
+            for (auto out_ref : op->out_refs) {
+                if (out_ref.defined()) {
+                    edgeType = "ref";
+                    os << tab << op->nodeID << " -> ";
+                    out_ref.accept(this);
+                }
             }
+            edgeType = "";
+        }
+        printedNodes.push_back(op->nodeID);
+    }
 
-            if (op->out_b_ref.defined()) {
-                edgeType = "ref";
-                os << tab << op->nodeID << " -> ";
-                op->out_b_ref.accept(this);
+    void SAMDotEdgePrinter::visit(const ArrayNode *op) {
+        stringstream ss;
+        if (!edgeType.empty()) {
+            ss << " [label=\"" << edgeType << "\"";
+            if (prettyPrint) {
+                ss << " " << edgeStyle[edgeType];
             }
+            ss << "]";
+        }
+        os << op->nodeID << ss.str() << endl;
+
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            if (op->out_val.defined()) {
+                edgeType = "";
+                os << tab << op->nodeID << " -> ";
+                op->out_val.accept(this);
+            }
+            
             edgeType = "";
         }
         printedNodes.push_back(op->nodeID);
