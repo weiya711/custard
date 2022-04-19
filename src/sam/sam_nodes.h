@@ -40,6 +40,37 @@ struct RootNode : public SAMNode {
     SamNodeType _type_info = SamNodeType::Root;
 };
 
+
+struct BroadcastNode : public SAMNode {
+    BroadcastNode() : SAMNode() {}
+
+    explicit BroadcastNode(const std::vector<SamIR>& outputs, const SamEdgeType& type, int nodeID) :
+    SAMNode(), outputs(outputs), type(type), nodeID(nodeID) {
+    }
+
+    void accept(SAMVisitorStrict* v) const override {
+        v->visit(this);
+    }
+
+    std::vector<SamIR> getInputs() const override {
+        return std::vector<SamIR>();
+    }
+
+    std::vector<SamIR> getOutputs() const override {
+        return std::vector<SamIR>();
+    }
+
+    std::string getName() const override {
+        return "WireBroadcast";
+    }
+
+    std::vector<SamIR> outputs;
+    SamEdgeType type;
+    int nodeID = 0;
+
+    SamNodeType _type_info = SamNodeType::Broadcast;
+};
+
 struct FiberLookupNode : public SAMNode {
     FiberLookupNode() : SAMNode() {}
 
@@ -245,26 +276,45 @@ struct RepeatNode : public SAMNode {
 
         static const SamNodeType _type_info = SamNodeType::Union;
     };
-/*
+
 struct RepeatSigGenNode : public SAMNode {
     RepeatSigGenNode() : SAMNode() {}
 
-    RepeatSigGenNode(const SamIR& in_crd, const SamIR& out_repsig,
-                     TensorVar& tensorVar, const IndexVar& i) : SAMNode(), in_crd(in_crd), out_repsig(out_repsig),
-                     tensorVar(tensorVar), i(i) {}
+    RepeatSigGenNode(const SamIR& out_repsig, const IndexVar& i, const
+                     TensorVar& tensorVar, int mode, bool root, int nodeID) : SAMNode(), out_repsig(out_repsig),
+                     i(i), tensorVar(tensorVar), mode(mode), root(root), nodeID(nodeID) {}
 
-    // Inputs
-    SamIR in_crd;
+    void accept(SAMVisitorStrict* v) const override {
+        v->visit(this);
+    }
+
+    std::vector<SamIR> getInputs() const override {
+        return std::vector<SamIR>();
+    }
+
+    std::vector<SamIR> getOutputs() const override {
+        return std::vector<SamIR>();
+    }
+
+    std::string getName() const override;
+
     // No Outputs
     SamIR out_repsig;
 
     // Metadata
-    TensorVar tensorVar;
     IndexVar i;
+    TensorVar tensorVar;
+    int mode = 0;
+    bool root = false;
+
+    int nodeID = 0;
 
     static const SamNodeType _type_info = SamNodeType::RepeatSigGen;
 };
 
+
+
+/*
 struct ArrayNode : public SAMNode {
     // Inputs
     SamIR in_ref;

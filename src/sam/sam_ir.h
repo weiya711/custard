@@ -20,6 +20,7 @@ namespace sam {
     struct RootNode;
     struct IntersectNode;
     struct UnionNode;
+    struct BroadcastNode;
 
     class SamIR;
     class SAMVisitorStrict;
@@ -93,6 +94,29 @@ namespace sam {
 
         typedef RepeatNode Node;
 
+    };
+
+    class RepeatSigGen : public SamIR {
+    public:
+        RepeatSigGen() = default;
+
+        explicit RepeatSigGen(const RepeatSigGenNode *);
+
+        RepeatSigGen(SamIR out_repsig, IndexVar i, TensorVar tensorVar, int mode, int nodeID, bool root=false);
+
+        typedef RepeatSigGenNode Node;
+
+    };
+
+    class Broadcast : public SamIR {
+    public:
+        Broadcast() = default;
+
+        explicit Broadcast(const BroadcastNode *);
+
+        Broadcast(std::vector<SamIR> outputs, SamEdgeType type, int nodeID);
+
+        typedef BroadcastNode Node;
     };
 
     class Root : public SamIR {

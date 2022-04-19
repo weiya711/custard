@@ -771,22 +771,6 @@ Stmt LowererImplImperative::lowerForall(Forall forall)
   }
 
   MergeLattice caseLattice = MergeLattice::make(forall, iterators, provGraph, definedIndexVars, whereTempsToResult);
-//  cout << "DEBUG: " << endl;
-//  cout << forall << endl;
-//  cout << caseLattice << endl;
-    cout << iterators.modeIterator(forall.getIndexVar()) << endl;
-  cout << "LEVEL ITERATORS: ";
-   // cout << iterators.modeIterator(forall.getIndexVar()) << ", " << iterators.levelIterator(forall.getIndexVar())
-  for (auto iter : iterators.levelIterators()) {
-      cout << iter.first << ", " << iter.second << " ---- ";
-  }
-  cout << endl;
-    cout << "Mode ITERATORS: ";
-    for (auto iter : iterators.modeIterators()) {
-        cout << iter.first << ", " << iter.second << " ---- ";
-    }
-//    cout << endl;
-//  cout << "Defined Vars: " << util::join(definedIndexVars) << endl;
 
   vector<Access> resultAccesses;
   set<Access> reducedAccesses;

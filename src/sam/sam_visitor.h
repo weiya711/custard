@@ -19,6 +19,7 @@ namespace sam {
     struct AddNode;
     struct ReduceNode;
     struct SparseAccumulatorNode;
+    struct BroadcastNode;
 
     class SAMVisitorStrict {
     public:
@@ -27,6 +28,8 @@ namespace sam {
         void visit(const SamIR& sam);
 
         virtual void visit(const RootNode *) = 0;
+        virtual void visit(const BroadcastNode *) = 0;
+
         virtual void visit(const FiberLookupNode *) = 0;
         virtual void visit(const FiberWriteNode *) = 0;
 
@@ -53,6 +56,7 @@ namespace sam {
         using SAMVisitorStrict::visit;
 
         virtual void visit(const RootNode *);
+        virtual void visit(const BroadcastNode *);
 
         virtual void visit(const FiberLookupNode *);
         virtual void visit(const FiberWriteNode *);

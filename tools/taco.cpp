@@ -653,6 +653,7 @@ int main(int argc, char* argv[]) {
   bool printConcrete       = false;
   bool printIterationGraph = false;
   bool printSAMGraph       = false;
+  std::string samFileName;
 
   bool writeCompute        = false;
   bool writeAssemble       = false;
@@ -935,6 +936,9 @@ int main(int argc, char* argv[]) {
     }
     else if ("-print-sam-graph" == argName) {
         printSAMGraph = true;
+        if (!argValue.empty()) {
+            samFileName = argValue;
+        }
     }
     else if ("-print-nocolor" == argName) {
       color = false;
@@ -1384,25 +1388,22 @@ int main(int argc, char* argv[]) {
   SAMGraph samGraph;
   if (printSAMGraph) {
       samGraph = SAMGraph::make(tensor.getAssignment());
+
       if (hasPrinted) {
           cout << endl << endl;
       }
       cout << endl << endl;
       cout << "SAM GRAPH" << endl;
-      samGraph.printInputIteration(cout);
-      cout << endl << endl;
-      samGraph.printContractions(cout);
-      cout << endl << endl;
-      samGraph.printComputation(cout);
-      cout << endl << endl;
-      samGraph.printOutputIteration(cout);
 
       cout << endl << endl;
       samGraph.printInputIterationAsDot(cout);
+      if (!samFileName.empty()) {
+          ofstream samFile; // outdata is like cin
+          samFile.open(samFileName); // opens the file
+          taco_uassert((bool)samFile) << "Error: file could not be opened" << endl;
+          samGraph.printInputIterationAsDot(samFile);
+      }
 
-
-      cout << endl;
-      cout << samGraph << endl;
       hasPrinted = true;
   }
 

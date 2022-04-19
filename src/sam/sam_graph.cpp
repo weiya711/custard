@@ -445,8 +445,8 @@ namespace taco {
             contractions[indexvar] = tensorList;
         }
 
-        // Input Iteration without Contractions
 
+        // Input Iteration without Contractions
         map<IndexVar, vector<SamIR>> nodeMap;
         for (int count = 0; count < numIndexVars; count++) {
 
@@ -478,7 +478,6 @@ namespace taco {
 
             vector<SamIR> nodes;
             for (int ntp = 0; ntp < (int) getTensorPaths().size(); ntp++) {
-
                 SamIR node;
                 map<IndexVar, SamIR> irNodes;
 
@@ -488,6 +487,19 @@ namespace taco {
                 auto formats = getFormatMapping(tensorPath);
 
                 auto vars = tensorPath.getVariables();
+
+                if (std::count(vars.begin(), vars.end(), indexvar) == 0) {
+                    SamIR nodeRepeat;
+                    if (count == 0) {
+                        nodeRepeat = Repeat(nullptr, indexvar, tensorVar, id, isRoot);
+
+                    } else {
+                        auto prevSAMNode = nodeMap[prevIndexVar][ntp];
+                        nodeRepeat = Repeat(prevSAMNode, indexvar, tensorVar, id, isRoot);
+                    }
+                    node = RepeatSigGen(nodeRepeat, indexvar, tensorVar, id, isRoot);
+                }
+
                 auto it = find(vars.begin(), vars.end(), indexvar);
                 mode = it != vars.end() ? (int) distance(vars.begin(), it) : 9999;
 
@@ -495,7 +507,7 @@ namespace taco {
 
                     if (count == 0) {
                         node = FiberLookup(contractNode, hasContraction ? contractNode : crdDest,
-                                           indexvar, tensorVar, mode,  id, false, true);
+                                           indexvar, tensorVar, mode,  id, isRoot, true);
                     } else {
                         auto prevSAMNode = hasContraction ? contractNode : nodeMap[prevIndexVar][ntp];
                         node = FiberLookup(prevSAMNode, hasContraction ? contractNode : crdDest,
@@ -503,14 +515,6 @@ namespace taco {
                     }
 
                     mode--;
-                } else {
-                    if (count == 0) {
-                        // TODO: add in RSG
-                        node = Repeat(nullptr, indexvar, tensorVar,  id, false);
-                    } else {
-                        auto prevSAMNode = nodeMap[prevIndexVar][ntp];
-                        node = Repeat(prevSAMNode, indexvar, tensorVar, id, isRoot);
-                    }
                 }
                 id++;
                 nodes.push_back(node);
