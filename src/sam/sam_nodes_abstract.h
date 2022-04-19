@@ -45,10 +45,6 @@ public:
 
     virtual void accept(SAMVisitorStrict *) const = 0;
 
-    virtual std::vector<SamIR> getInputs() const = 0;
-
-    virtual std::vector<SamIR> getOutputs() const = 0;
-
     virtual std::string getName() const = 0;
 
     SamNodeType type_info() const;
