@@ -72,13 +72,7 @@ namespace sam {
 
         void visit(const ArrayNode *);
 
-//        void visit(const AddNode *);
-//
-//        void visit(const MulNode *);
-//
-//        void visit(const ReduceNode *);
-//
-//        void visit(const SparseAccumulatorNode *);
+        void visit(const ComputeNode *) override;
 
     private:
         std::ostream &os;
@@ -111,6 +105,8 @@ namespace sam {
         void visit(const JoinerNode *) override;
 
         void visit(const ArrayNode *) override;
+
+        void visit(const ComputeNode *) override;
 
     private:
         std::ostream &os;

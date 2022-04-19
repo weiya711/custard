@@ -15,6 +15,7 @@ namespace sam {
     struct IntersectNode;
     struct UnionNode;
     struct ArrayNode;
+    struct ComputeNode;
     struct MulNode;
     struct AddNode;
     struct ReduceNode;
@@ -70,11 +71,11 @@ namespace sam {
 
         virtual void visit(const ArrayNode *);
 
+        virtual void visit(const ComputeNode *);
         virtual void visit(const AddNode *);
         virtual void visit(const MulNode *);
 
         virtual void visit(const ReduceNode *);
-
         virtual void visit(const SparseAccumulatorNode *);
     };
 

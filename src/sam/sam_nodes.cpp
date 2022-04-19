@@ -28,15 +28,9 @@ namespace sam {
         return ss.str();
     }
 
-    std::string IntersectNode::getName() const {
+    std::string JoinerNode::getName() const {
         stringstream ss;
-        ss << "Intersect " << i.getName();
-        return ss.str();
-    }
-
-    std::string UnionNode::getName() const {
-        stringstream ss;
-        ss << "Union " << i.getName();
+        ss << getNodeName() << " " << i.getName();
         return ss.str();
     }
 
@@ -49,6 +43,12 @@ namespace sam {
     std::string ArrayNode::getName() const {
         stringstream ss;
         ss << "Array Vals: " << tensorVar.getName();
+        return ss.str();
+    }
+
+    std::string SparseAccumulatorNode::getNodeStr() const {
+        stringstream ss;
+        ss << "SparseAccumulator " << to_string(order);
         return ss.str();
     }
 }

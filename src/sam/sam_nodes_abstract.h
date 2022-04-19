@@ -15,6 +15,7 @@ class SamIR;
 
 enum class SamNodeType {
     Root,
+    Broadcast,
     FiberLookup,
     FiberWrite,
     Repeat,
@@ -25,8 +26,7 @@ enum class SamNodeType {
     Mul,
     Add,
     Reduce,
-    SparseAccumulator,
-    Broadcast
+    SparseAccumulator
 };
 
 enum class SamEdgeType {

@@ -196,6 +196,28 @@ namespace sam {
         printedNodes.push_back(op->nodeID);
     }
 
+    void SAMDotNodePrinter::visit(const ComputeNode *op) {
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            std::stringstream comment;
+            comment << "\"" << op->getNodeName() <<"\"";
+
+            os << tab;
+            os << to_string(op->nodeID) << " [comment=" << comment.str();
+            if (prettyPrint) {
+                os << " label=\"" << op->getName() << "\"";
+                os << " color=green2 shape=box style=filled";
+            }
+            os << "]" << endl;
+
+            if (op->out_val.defined()) {
+                op->out_val.accept(this);
+            }
+
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
+    // SAM Dot Edge Printer
     void SAMDotEdgePrinter::print(const SamIR &sam) {
         sam.accept(this);
     }
@@ -385,7 +407,30 @@ namespace sam {
                 os << tab << op->nodeID << " -> ";
                 op->out_val.accept(this);
             }
-            
+
+            edgeType = "";
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
+    void SAMDotEdgePrinter::visit(const ComputeNode *op) {
+        stringstream ss;
+        if (!edgeType.empty()) {
+            ss << " [label=\"" << edgeType << "\"";
+            if (prettyPrint) {
+                ss << " " << edgeStyle[edgeType];
+            }
+            ss << "]";
+        }
+        os << op->nodeID << ss.str() << endl;
+
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            if (op->out_val.defined()) {
+                edgeType = "";
+                os << tab << op->nodeID << " -> ";
+                op->out_val.accept(this);
+            }
+
             edgeType = "";
         }
         printedNodes.push_back(op->nodeID);

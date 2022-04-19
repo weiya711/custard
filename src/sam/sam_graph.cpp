@@ -331,7 +331,7 @@ namespace taco {
 
         map<TensorVar, SamIR> valsArrays;
         for (auto tensor : inputTensors) {
-            auto array = taco::sam::Array(nullptr, tensor, id);
+            auto array = taco::sam::Array(SamIR(), tensor, id);
             id++;
             valsArrays[tensor] = array;
         }
@@ -340,6 +340,7 @@ namespace taco {
         id++;
         valsArrays[getResultTensorPath().getAccess().getTensorVar()] = resultWriteVals;
 
+        // TODO: FINISH THIS
         // Elementwise Compute Operations
         vector<SamNodeType> compute;
         match(content->expr,
@@ -367,6 +368,20 @@ namespace taco {
                 isInnerReduction = false;
             } else {
                 isInnerReduction = false;
+            }
+        }
+
+        if (!compute.empty()) {
+            for (auto computation : compute) {
+                SamIR computeNode;
+                switch (computation) {
+                    case SamNodeType::Mul:
+                        computeNode = taco::sam::Mul();
+                        break;
+                    default:
+                        break;
+
+                }
             }
         }
 
@@ -442,7 +457,7 @@ namespace taco {
             IndexVar prevIndexVar = count == 0 ? nullptr : getOrderedIndexVars().at(numIndexVars - count);
 
             auto crdDest = contains(resultHasSource,indexvar) && !resultHasSource.at(indexvar) ?
-                           resultWriteIRNodes.at(indexvar) : nullptr;
+                           resultWriteIRNodes.at(indexvar) : SamIR();
 
             bool hasContraction = contractions.at(indexvar).size() > 1;
             // FIXME: This will eventually need to be the iteration algebra for fused kernels
