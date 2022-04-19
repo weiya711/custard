@@ -205,7 +205,7 @@ namespace sam {
             os << to_string(op->nodeID) << " [comment=" << comment.str();
             if (prettyPrint) {
                 os << " label=\"" << op->getName() << "\"";
-                os << " color=green2 shape=box style=filled";
+                os << " color=brown shape=box style=filled";
             }
             os << "]" << endl;
 

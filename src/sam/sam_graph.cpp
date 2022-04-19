@@ -372,17 +372,32 @@ namespace taco {
         }
 
         if (!compute.empty()) {
-            for (auto computation : compute) {
-                SamIR computeNode;
+            auto prevComputeNode = SamIR();
+            SamIR computeNode = SamIR();
+            for (auto it =  compute.rbegin(); it != compute.rend(); it++) {
+                auto computation = *it;
                 switch (computation) {
                     case SamNodeType::Mul:
-                        computeNode = taco::sam::Mul();
+                        computeNode = taco::sam::Mul(prevComputeNode, id);
+                        break;
+                    case SamNodeType::Add:
+                        computeNode = taco::sam::Add(prevComputeNode, id);
+                        break;
+                    case SamNodeType::Reduce:
+                        computeNode = taco::sam::Reduce(prevComputeNode, id);
+                        break;
+                    case SamNodeType::SparseAccumulator:
+                        // FIXME: make sure order is correct (currently isn't)
+                        computeNode = taco::sam::SparseAccumulator(prevComputeNode, 0, id);
                         break;
                     default:
                         break;
-
                 }
+                prevComputeNode = computeNode;
+                id++;
             }
+            // FIXME: Add compute node to end of Arrays
+            rootNodes.push_back(computeNode);
         }
 
         // Output Assignment
