@@ -424,7 +424,7 @@ namespace taco {
                       vector<TensorVar> tensors;
                       tensors.push_back(to<Access>(op->a).getTensorVar());
                       tensors.push_back(to<Access>(op->b).getTensorVar());
-                      contractionType[tensors] = true;
+                      contractionType[tensors] = false;
                   } else {
                       ctx->match(op->a);
                       ctx->match(op->b);

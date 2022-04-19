@@ -40,7 +40,6 @@ namespace sam {
             os << tab;
             os << to_string(op->nodeID) << " [comment=\"broadcast\"";
             if (prettyPrint) {
-//                os << " label=\"" << op->getName() << "\"";
                 os << " shape=point style=invis";
             }
             os << "]" << endl;
