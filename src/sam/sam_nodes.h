@@ -23,16 +23,8 @@ struct RootNode : public SAMNode {
         v->visit(this);
     }
 
-    std::vector<SamIR> getInputs() const override {
-        return std::vector<SamIR>();
-    }
-
-    std::vector<SamIR> getOutputs() const override {
-        return std::vector<SamIR>();
-    }
-
     std::string getName() const override {
-        return "";
+        return "RootNode";
     }
 
     std::vector<SamIR> nodes;
@@ -50,14 +42,6 @@ struct BroadcastNode : public SAMNode {
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
-    }
-
-    std::vector<SamIR> getInputs() const override {
-        return std::vector<SamIR>();
-    }
-
-    std::vector<SamIR> getOutputs() const override {
-        return std::vector<SamIR>();
     }
 
     std::string getName() const override {
@@ -86,19 +70,8 @@ struct FiberLookupNode : public SAMNode {
         v->visit(this);
     }
 
-    std::vector<SamIR> getInputs() const override;
-
-    std::vector<SamIR> getOutputs() const override;
-
     std::string getName() const override;
 
-    void setOutputs(SamIR, SamIR);
-    void setOutRef(SamIR);
-    void setOutCrd(SamIR);
-
-    void setSource(bool);
-
-    void setDim(bool);
 
     //Outputs
     SamIR out_ref;
@@ -138,13 +111,7 @@ struct FiberWriteNode : public SAMNode {
         v->visit(this);
     }
 
-    std::vector<SamIR> getInputs() const override;
-
-    std::vector<SamIR> getOutputs() const override;
-
     std::string getName() const override;
-
-    void setSink(bool);
 
     // Outputs
     // TODO: figure out if write scanners should have outputs (for workspaces)
@@ -180,14 +147,6 @@ struct RepeatNode : public SAMNode {
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
-    }
-
-    std::vector<SamIR> getInputs() const override {
-        return std::vector<SamIR>();
-    }
-
-    std::vector<SamIR> getOutputs() const override {
-        return std::vector<SamIR>();
     }
 
     std::string getName() const override;
@@ -235,14 +194,6 @@ struct RepeatNode : public SAMNode {
             v->visit(this);
         }
 
-        std::vector<SamIR> getInputs() const override {
-            return std::vector<SamIR>();
-        }
-
-        std::vector<SamIR> getOutputs() const override {
-            return std::vector<SamIR>();
-        }
-
         std::string getName() const override;
         std::string getNodeName() const override {
             return "intersect";
@@ -261,13 +212,6 @@ struct RepeatNode : public SAMNode {
             v->visit(this);
         }
 
-        std::vector<SamIR> getInputs() const override {
-            return std::vector<SamIR>();
-        }
-
-        std::vector<SamIR> getOutputs() const override {
-            return std::vector<SamIR>();
-        }
 
         std::string getName() const override;
         std::string getNodeName() const override {
@@ -287,14 +231,6 @@ struct RepeatSigGenNode : public SAMNode {
         v->visit(this);
     }
 
-    std::vector<SamIR> getInputs() const override {
-        return std::vector<SamIR>();
-    }
-
-    std::vector<SamIR> getOutputs() const override {
-        return std::vector<SamIR>();
-    }
-
     std::string getName() const override;
 
     // No Outputs
@@ -308,23 +244,18 @@ struct RepeatSigGenNode : public SAMNode {
     static const SamNodeType _type_info = SamNodeType::RepeatSigGen;
 };
 
-
-
-/*
 struct ArrayNode : public SAMNode {
-    // Inputs
-    SamIR in_ref;
     // No Outputs
     SamIR out_val;
 
     // Metadata
-    int length = 0;
     int vals = true;
 
 
     static const SamNodeType _type_info = SamNodeType::Array;
 };
 
+/*
 struct MulNode : public SAMNode {
     // Inputs
     SamIR in_a_val;
