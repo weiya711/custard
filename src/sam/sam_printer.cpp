@@ -140,7 +140,7 @@ namespace sam {
         for (const auto& node : op->nodes) {
             node.accept(this);
         }
-        cout << "}" << endl;
+        os << "}" << endl;
     }
 
     void SAMDotEdgePrinter::visit(const FiberLookupNode *op) {

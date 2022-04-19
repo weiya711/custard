@@ -25,8 +25,15 @@ enum class SamNodeType {
     Mul,
     Add,
     Reduce,
-    SparseAccumulator
+    SparseAccumulator,
+    Broadcast
+};
 
+enum class SamEdgeType {
+    ref,
+    val,
+    crd,
+    repsig
 };
 
 struct SAMNode : public util::Manageable<SAMNode>,

@@ -23,6 +23,12 @@ namespace sam {
         }
     }
 
+    void SAMVisitor::visit(const BroadcastNode *op) {
+        for (auto node : op->outputs) {
+            node.accept(this);
+        }
+    }
+
     void SAMVisitor::visit(const FiberLookupNode *op) {
         if (op->out_crd.defined()) {
             op->out_crd.accept(this);

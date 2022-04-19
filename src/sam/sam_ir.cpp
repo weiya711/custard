@@ -91,6 +91,21 @@ namespace sam {
 
     Root::Root(const vector<SamIR> nodes) : Root(new RootNode(nodes)){
     }
+
+    RepeatSigGen::RepeatSigGen(const RepeatSigGenNode *n) : SamIR(n){
+    }
+
+    RepeatSigGen::RepeatSigGen(SamIR out_repsig, IndexVar i, TensorVar tensorVar, int mode, int nodeID, bool root) :
+            RepeatSigGen(new RepeatSigGenNode(out_repsig, i, tensorVar, mode, root, nodeID)){
+    }
+
+    Broadcast::Broadcast(const BroadcastNode *n) : SamIR(n) {
+    }
+
+    Broadcast::Broadcast(std::vector<SamIR> outputs, SamEdgeType type, int nodeID) :
+    Broadcast(new BroadcastNode(outputs, type, nodeID)){
+
+    }
 }
 }
 

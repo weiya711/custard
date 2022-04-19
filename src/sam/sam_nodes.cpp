@@ -81,5 +81,11 @@ namespace sam {
         ss << "Union " << i.getName();
         return ss.str();
     }
+
+    std::string RepeatSigGenNode::getName() const {
+        stringstream ss;
+        ss << "RepeatSignalGenerator " << i.getName() << ": " << tensorVar.getName() << to_string(mode);
+        return ss.str();
+    }
 }
 }
