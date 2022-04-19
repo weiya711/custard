@@ -70,27 +70,36 @@ namespace sam {
     }
 
     void SAMVisitor::visit(const RepeatSigGenNode *op) {
-
+        if (op->out_repsig.defined()) {
+            op->out_repsig.accept(this);
+        }
     }
 
     void SAMVisitor::visit(const ArrayNode *op) {
-
+        if (op->out_val.defined()) {
+            op->out_val.accept(this);
+        }
     }
 
+    void SAMVisitor::visit(const ComputeNode *op) {
+        if (op->out_val.defined()) {
+            op->out_val.accept(this);
+        }
+    }
     void SAMVisitor::visit(const MulNode *op) {
-
+        visit(static_cast<const ComputeNode*>(op));
     }
 
     void SAMVisitor::visit(const AddNode *op) {
-
+        visit(static_cast<const ComputeNode*>(op));
     }
 
     void SAMVisitor::visit(const ReduceNode *op) {
-
+        visit(static_cast<const ComputeNode*>(op));
     }
 
     void SAMVisitor::visit(const SparseAccumulatorNode *op) {
-
+        visit(static_cast<const ComputeNode*>(op));
     }
 }
 }

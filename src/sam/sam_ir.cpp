@@ -113,6 +113,34 @@ namespace sam {
     Array::Array(SamIR out_val, TensorVar tensorVar, int nodeID) :
     Array(new ArrayNode(out_val, tensorVar, nodeID)) {
     }
+
+    Mul::Mul(const MulNode *n) : SamIR(n){
+    }
+
+    Mul::Mul(SamIR out_val, int nodeID) :
+            Mul(new MulNode(out_val, nodeID)) {
+    }
+
+    Add::Add(const AddNode *n) : SamIR(n){
+    }
+
+    Add::Add(SamIR out_val, int nodeID) :
+            Add(new AddNode(out_val, nodeID)) {
+    }
+
+    Reduce::Reduce(const ReduceNode *n) : SamIR(n){
+    }
+
+    Reduce::Reduce(SamIR out_val, int nodeID) :
+            Reduce(new ReduceNode(out_val, nodeID)) {
+    }
+    
+    SparseAccumulator::SparseAccumulator(const SparseAccumulatorNode *n) : SamIR(n){
+    }
+
+    SparseAccumulator::SparseAccumulator(SamIR out_val, int order, int nodeID) :
+            SparseAccumulator(new SparseAccumulatorNode(out_val, order, nodeID)) {
+    }
 }
 }
 

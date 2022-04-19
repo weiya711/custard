@@ -22,6 +22,10 @@ namespace sam {
     struct IntersectNode;
     struct UnionNode;
     struct ArrayNode;
+    struct AddNode;
+    struct MulNode;
+    struct ReduceNode;
+    struct SparseAccumulatorNode;
 
     class SamIR;
     class SAMVisitorStrict;
@@ -34,7 +38,7 @@ namespace sam {
     class SamIR : public util::IntrusivePtr<const SAMNode> {
     public:
         SamIR() : util::IntrusivePtr<const SAMNode>(nullptr) {}
-        SamIR(const SAMNode* n) : util::IntrusivePtr<const SAMNode>(n) {}
+        explicit SamIR(const SAMNode* n) : util::IntrusivePtr<const SAMNode>(n) {}
 
         void accept(SAMVisitorStrict *v) const;
 
@@ -52,7 +56,7 @@ namespace sam {
     public:
         FiberLookup() = default;
 
-        FiberLookup(const FiberLookupNode *);
+        explicit FiberLookup(const FiberLookupNode *);
 
 
         FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i, TensorVar tensorVar, int mode, int nodeID,
@@ -61,8 +65,6 @@ namespace sam {
         typedef FiberLookupNode Node;
 
         bool outputsDefined() const;
-
-        SamIR getInRef() const;
 
         SamIR getOutRef() const;
 
@@ -165,6 +167,54 @@ namespace sam {
         Array(SamIR out_val, TensorVar tensorVar, int nodeID);
 
         typedef ArrayNode Node;
+
+    };
+
+    class Mul : public SamIR {
+    public:
+        Mul() = default;
+
+        explicit Mul(const taco::sam::MulNode *);
+
+        Mul(SamIR out_val, int nodeID);
+
+        typedef taco::sam::MulNode Node;
+
+    };
+
+    class Add : public SamIR {
+    public:
+        Add() = default;
+
+        explicit Add(const taco::sam::AddNode *);
+
+        Add(SamIR out_val, int nodeID);
+
+        typedef taco::sam::AddNode Node;
+
+    };
+
+    class Reduce : public SamIR {
+    public:
+        Reduce() = default;
+
+        explicit Reduce(const ReduceNode *);
+
+        Reduce(SamIR out_val, int nodeID);
+
+        typedef ReduceNode Node;
+
+    };
+
+    class SparseAccumulator : public SamIR {
+    public:
+        SparseAccumulator() = default;
+
+        explicit SparseAccumulator(const SparseAccumulatorNode *);
+
+        SparseAccumulator(SamIR out_val, int order, int nodeID);
+
+        typedef SparseAccumulatorNode Node;
 
     };
 }
