@@ -84,7 +84,7 @@ namespace sam {
 
     std::string RepeatSigGenNode::getName() const {
         stringstream ss;
-        ss << "RepeatSignalGenerator " << i.getName() << ": " << tensorVar.getName() << to_string(mode);
+        ss << "RepeatSignalGenerator " << i.getName();
         return ss.str();
     }
 }

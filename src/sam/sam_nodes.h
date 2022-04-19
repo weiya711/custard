@@ -280,9 +280,8 @@ struct RepeatNode : public SAMNode {
 struct RepeatSigGenNode : public SAMNode {
     RepeatSigGenNode() : SAMNode() {}
 
-    RepeatSigGenNode(const SamIR& out_repsig, const IndexVar& i, const
-                     TensorVar& tensorVar, int mode, bool root, int nodeID) : SAMNode(), out_repsig(out_repsig),
-                     i(i), tensorVar(tensorVar), mode(mode), root(root), nodeID(nodeID) {}
+    RepeatSigGenNode(const SamIR& out_repsig, const IndexVar& i, int nodeID) :
+    SAMNode(), out_repsig(out_repsig), i(i), nodeID(nodeID) {}
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
@@ -303,9 +302,6 @@ struct RepeatSigGenNode : public SAMNode {
 
     // Metadata
     IndexVar i;
-    TensorVar tensorVar;
-    int mode = 0;
-    bool root = false;
 
     int nodeID = 0;
 

@@ -102,7 +102,7 @@ namespace sam {
 
         explicit RepeatSigGen(const RepeatSigGenNode *);
 
-        RepeatSigGen(SamIR out_repsig, IndexVar i, TensorVar tensorVar, int mode, int nodeID, bool root=false);
+        RepeatSigGen(SamIR out_repsig, IndexVar i, int nodeID);
 
         typedef RepeatSigGenNode Node;
 

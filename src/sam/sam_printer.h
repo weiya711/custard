@@ -58,14 +58,16 @@ namespace sam {
 
         void visit(const RootNode *) override;
 
+        void visit(const BroadcastNode *) override;
+
         void visit(const FiberLookupNode *) override;
 
         void visit(const FiberWriteNode *) override;
 
         void visit(const RepeatNode *) override;
-//
-//        void visit(const RepeatSigGenNode *);
-//
+
+        void visit(const RepeatSigGenNode *) override;
+
         void visit(const JoinerNode *) override;
 //
 //        void visit(const ArrayNode *);
@@ -96,11 +98,15 @@ namespace sam {
 
         void visit(const RootNode *) override;
 
+        void visit(const BroadcastNode *) override;
+
         void visit(const FiberLookupNode *) override;
 
         void visit(const FiberWriteNode *) override;
 
         void visit(const RepeatNode *) override;
+
+        void visit(const RepeatSigGenNode *) override;
 
         void visit(const JoinerNode *) override;
     private:

@@ -95,8 +95,8 @@ namespace sam {
     RepeatSigGen::RepeatSigGen(const RepeatSigGenNode *n) : SamIR(n){
     }
 
-    RepeatSigGen::RepeatSigGen(SamIR out_repsig, IndexVar i, TensorVar tensorVar, int mode, int nodeID, bool root) :
-            RepeatSigGen(new RepeatSigGenNode(out_repsig, i, tensorVar, mode, root, nodeID)){
+    RepeatSigGen::RepeatSigGen(SamIR out_repsig, IndexVar i, int nodeID) :
+            RepeatSigGen(new RepeatSigGenNode(out_repsig, i, nodeID)){
     }
 
     Broadcast::Broadcast(const BroadcastNode *n) : SamIR(n) {

@@ -320,6 +320,7 @@ namespace taco {
         int id = 0;
 
         vector<TensorVar> inputTensors;
+        vector<SamIR> rootNodes;
 
         int numIndexVars = (int)getOrderedIndexVars().size();
 
@@ -462,6 +463,52 @@ namespace taco {
             bool isIntersection = contains(contractionType, contractions.at(indexvar)) &&
                                   contractionType.at(contractions.at(indexvar));
 
+            vector<SamIR> nodes(getTensorPaths().size());
+            vector<SamIR> repeatNodes;
+            for (int ntp = 0; ntp < (int) getTensorPaths().size(); ntp++) {
+                SamIR node;
+
+                TensorPath tensorPath = getTensorPaths().at(ntp);
+                auto tensorVar = tensorPath.getAccess().getTensorVar();
+
+                auto vars = tensorPath.getVariables();
+
+                // FIXME: see if repeat nodes are ever a root
+                if (std::count(vars.begin(), vars.end(), indexvar) == 0) {
+                    if (count == 0) {
+                        node = Repeat(nullptr, indexvar, tensorVar, id, false);
+                    } else {
+                        auto prevSAMNode = nodeMap[prevIndexVar][ntp];
+                        node = Repeat(prevSAMNode, indexvar, tensorVar, id, false);
+                    }
+                    id++;
+                    nodes[ntp] = node;
+                    repeatNodes.push_back(node);
+                }
+
+            }
+
+            // Repeats exist for this indexvar
+            SamIR repeatSigGenNode;
+            if (repeatNodes.size() > 1) {
+                auto broadcast = Broadcast(repeatNodes, sam::SamEdgeType::repsig, id);
+                id++;
+                repeatSigGenNode = RepeatSigGen(broadcast, indexvar, id);
+                id++;
+            } else if (repeatNodes.size() > 0) {
+                repeatSigGenNode = RepeatSigGen(repeatNodes.at(0), indexvar, id);
+                id++;
+            }
+
+            // if a RepSigGen, the destination coordinate needs to be broadcasted to the RepSigGen block
+            if(repeatSigGenNode.defined() && crdDest.defined()) {
+                    crdDest = Broadcast({crdDest, repeatSigGenNode}, sam::SamEdgeType::crd, id);
+                    id++;
+            } else if (repeatSigGenNode.defined()) {
+                crdDest = repeatSigGenNode;
+            }
+
+
             // FIXME: Assumes 2 input operands
             SamIR contractNode;
             if (hasContraction && isIntersection) {
@@ -476,10 +523,8 @@ namespace taco {
                 id++;
             }
 
-            vector<SamIR> nodes;
             for (int ntp = 0; ntp < (int) getTensorPaths().size(); ntp++) {
                 SamIR node;
-                map<IndexVar, SamIR> irNodes;
 
                 TensorPath tensorPath = getTensorPaths().at(ntp);
                 auto tensorVar = tensorPath.getAccess().getTensorVar();
@@ -487,18 +532,6 @@ namespace taco {
                 auto formats = getFormatMapping(tensorPath);
 
                 auto vars = tensorPath.getVariables();
-
-                if (std::count(vars.begin(), vars.end(), indexvar) == 0) {
-                    SamIR nodeRepeat;
-                    if (count == 0) {
-                        nodeRepeat = Repeat(nullptr, indexvar, tensorVar, id, isRoot);
-
-                    } else {
-                        auto prevSAMNode = nodeMap[prevIndexVar][ntp];
-                        nodeRepeat = Repeat(prevSAMNode, indexvar, tensorVar, id, isRoot);
-                    }
-                    node = RepeatSigGen(nodeRepeat, indexvar, tensorVar, id, isRoot);
-                }
 
                 auto it = find(vars.begin(), vars.end(), indexvar);
                 mode = it != vars.end() ? (int) distance(vars.begin(), it) : 9999;
@@ -515,16 +548,20 @@ namespace taco {
                     }
 
                     mode--;
+                    id++;
+                    nodes[ntp] = node;
+
+                    if (count == numIndexVars - 1) {
+                        rootNodes.push_back(node);
+                    }
                 }
-                id++;
-                nodes.push_back(node);
             }
             nodeMap[indexvar] = nodes;
         }
 
 
         taco_iassert(numIndexVars > 0);
-        auto root = Root(nodeMap.at(getOrderedIndexVars().at(0)));
+        auto root = Root(rootNodes);
         return root;
     }
 
