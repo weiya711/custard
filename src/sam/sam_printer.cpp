@@ -34,6 +34,27 @@ namespace sam {
         }
     }
 
+    // SAMDotNodePrinter
+    void SAMDotNodePrinter::visit(const BroadcastNode *op) {
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            os << tab;
+            os << to_string(op->nodeID) << " [comment=\"broadcast\"";
+            if (prettyPrint) {
+//                os << " label=\"" << op->getName() << "\"";
+                os << " shape=point style=invis";
+            }
+            os << "]" << endl;
+
+
+            for (const auto &node: op->outputs) {
+                if (node.defined()) {
+                    node.accept(this);
+                }
+            }
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
     void SAMDotNodePrinter::visit(const FiberLookupNode *op) {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             string src = op->source ? "_src" : "";
@@ -104,6 +125,27 @@ namespace sam {
         printedNodes.push_back(op->nodeID);
     }
 
+    void SAMDotNodePrinter::visit(const RepeatSigGenNode *op) {
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+
+            std::stringstream comment;
+            comment << "\"repsiggen-" << op->i.getName() << "\"";
+
+            os << tab;
+            os << to_string(op->nodeID) << " [comment=" << comment.str();
+            if (prettyPrint) {
+                os << " label=\"" << op->getName() << "\"";
+                os << " color=cyan3 shape=box style=filled";
+            }
+            os << "]" << endl;
+
+            if (op->out_repsig.defined()) {
+                op->out_repsig.accept(this);
+            }
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
     void SAMDotNodePrinter::visit(const JoinerNode *op) {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             std::stringstream comment;
@@ -141,6 +183,41 @@ namespace sam {
             node.accept(this);
         }
         os << "}" << endl;
+    }
+
+    void SAMDotEdgePrinter::visit(const BroadcastNode *op) {
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            stringstream ss;
+            ss << " [label=\"" << edgeType << "\"";
+            if (prettyPrint) {
+                ss << " " << edgeStyle[edgeType];
+            }
+            ss << "]";
+            os << op->nodeID << ss.str() << endl;
+
+            for (const auto &node: op->outputs) {
+                if (node.defined()) {
+                    switch (op->type) {
+                        case SamEdgeType::crd:
+                            edgeType = "crd";
+                            break;
+                        case SamEdgeType::ref:
+                            edgeType = "ref";
+                            break;
+                        case SamEdgeType::repsig:
+                            edgeType = "repsig";
+                            break;
+                        case SamEdgeType::val:
+                        default:
+                            edgeType = "";
+                            break;
+                    }
+                    os << tab << op->nodeID << " -> ";
+                    node.accept(this);
+                }
+            }
+        }
+        printedNodes.push_back(op->nodeID);
     }
 
     void SAMDotEdgePrinter::visit(const FiberLookupNode *op) {
@@ -210,6 +287,28 @@ namespace sam {
                 edgeType = "ref";
                 os << tab << op->nodeID << " -> ";
                 op->out_ref.accept(this);
+            }
+            edgeType = "";
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
+    void SAMDotEdgePrinter::visit(const RepeatSigGenNode *op) {
+        stringstream ss;
+        if (!edgeType.empty()) {
+            ss << " [label=\"" << edgeType << "\"";
+            if (prettyPrint) {
+                ss << " " << edgeStyle[edgeType];
+            }
+            ss << "]";
+        }
+        os << op->nodeID << ss.str() << endl;
+
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            if (op->out_repsig.defined()) {
+                edgeType = "repsig";
+                os << tab << op->nodeID << " -> ";
+                op->out_repsig.accept(this);
             }
             edgeType = "";
         }
