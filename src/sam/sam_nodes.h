@@ -185,7 +185,7 @@ protected:
 
     JoinerNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, int nodeID) :
     SAMNode(), out_crd(out_crd), out_refs(out_refs), i(i), nodeID(nodeID) {
-        numInputs = (int)out_refs.size();
+//        numInputs = (int)out_refs.size();
     }
 };
 

@@ -109,6 +109,8 @@ namespace sam {
         void visit(const ComputeNode *) override;
 
     private:
+        std::string printerHelper();
+
         std::ostream &os;
         bool prettyPrint = true;
         std::string tab = "    ";
@@ -116,6 +118,8 @@ namespace sam {
         std::vector<int> printedNodes;
         std::map<std::string, std::string> edgeStyle = {{"ref", "style=bold"}, {"crd", "style=dashed"},
                                                         {"repsig", "style=dotted"}, {"bv", "style=dashed"}};
+        bool printComment = false;
+        std::string comment;
     };
 }
 }

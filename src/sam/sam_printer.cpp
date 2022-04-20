@@ -231,13 +231,8 @@ namespace sam {
 
     void SAMDotEdgePrinter::visit(const BroadcastNode *op) {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
-            stringstream ss;
-            ss << " [label=\"" << edgeType << "\"";
-            if (prettyPrint) {
-                ss << " " << edgeStyle[edgeType];
-            }
-            ss << "]";
-            os << op->nodeID << ss.str() << endl;
+            string ss = printerHelper();
+            os << op->nodeID << ss << endl;
 
             for (const auto &node: op->outputs) {
                 if (node.defined()) {
@@ -267,15 +262,8 @@ namespace sam {
 
     void SAMDotEdgePrinter::visit(const FiberLookupNode *op) {
         if (!op->root) {
-            stringstream ss;
-            if (!edgeType.empty()) {
-                ss << " [label=\"" << edgeType << "\"";
-                if (prettyPrint) {
-                    ss << " " << edgeStyle[edgeType];
-                }
-                ss << "]";
-            }
-            os << op->nodeID << ss.str() << endl;
+            string ss = printerHelper();
+            os << op->nodeID << ss << endl;
         }
 
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
@@ -299,15 +287,8 @@ namespace sam {
     }
 
     void SAMDotEdgePrinter::visit(const FiberWriteNode *op) {
-        stringstream ss;
-        if (!edgeType.empty()) {
-            ss << " [label=\"" << edgeType << "\"";
-            if (prettyPrint) {
-                ss << " " << edgeStyle[edgeType];
-            }
-            ss << "]";
-        }
-        os << op->nodeID << ss.str() << endl;
+        string ss = printerHelper();
+        os << op->nodeID << ss << endl;
 
         edgeType = "";
 
@@ -316,15 +297,8 @@ namespace sam {
 
     void SAMDotEdgePrinter::visit(const RepeatNode *op) {
         if (!op->root) {
-            stringstream ss;
-            if (!edgeType.empty()) {
-                ss << " [label=\"" << edgeType << "\"";
-                if (prettyPrint) {
-                    ss << " " << edgeStyle[edgeType];
-                }
-                ss << "]";
-            }
-            os << op->nodeID << ss.str() << endl;
+            string ss = printerHelper();
+            os << op->nodeID << ss << endl;
         }
 
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
@@ -339,15 +313,8 @@ namespace sam {
     }
 
     void SAMDotEdgePrinter::visit(const RepeatSigGenNode *op) {
-        stringstream ss;
-        if (!edgeType.empty()) {
-            ss << " [label=\"" << edgeType << "\"";
-            if (prettyPrint) {
-                ss << " " << edgeStyle[edgeType];
-            }
-            ss << "]";
-        }
-        os << op->nodeID << ss.str() << endl;
+        string ss = printerHelper();
+        os << op->nodeID << ss << endl;
 
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_repsig.defined()) {
@@ -361,15 +328,16 @@ namespace sam {
     }
 
     void SAMDotEdgePrinter::visit(const JoinerNode *op) {
-        stringstream ss;
-        if (!edgeType.empty()) {
-            ss << " [label=\"" << edgeType << "\"";
-            if (prettyPrint) {
-                ss << " " << edgeStyle[edgeType];
-            }
-            ss << "]";
+        printComment = true;
+        comment = "in"+to_string(op->numInputs);
+
+        string ss = printerHelper();
+        os << op->nodeID << ss << endl;
+
+        if (edgeType == "ref") {
+            auto op_addr = (JoinerNode **) &op;
+            (*op_addr)->numInputs += 1;
         }
-        os << op->nodeID << ss.str() << endl;
 
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_crd.defined()) {
@@ -378,7 +346,10 @@ namespace sam {
                 op->out_crd.accept(this);
             }
 
-            for (auto out_ref : op->out_refs) {
+            for (int i = 0; i < (int)op->out_refs.size(); i++) {
+                auto out_ref = op->out_refs.at(i);
+                printComment = true;
+                comment = "out"+to_string(i);
                 if (out_ref.defined()) {
                     edgeType = "ref";
                     os << tab << op->nodeID << " -> ";
@@ -391,15 +362,8 @@ namespace sam {
     }
 
     void SAMDotEdgePrinter::visit(const ArrayNode *op) {
-        stringstream ss;
-        if (!edgeType.empty()) {
-            ss << " [label=\"" << edgeType << "\"";
-            if (prettyPrint) {
-                ss << " " << edgeStyle[edgeType];
-            }
-            ss << "]";
-        }
-        os << op->nodeID << ss.str() << endl;
+        string ss = printerHelper();
+        os << op->nodeID << ss << endl;
 
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_val.defined()) {
@@ -414,15 +378,8 @@ namespace sam {
     }
 
     void SAMDotEdgePrinter::visit(const ComputeNode *op) {
-        stringstream ss;
-        if (!edgeType.empty()) {
-            ss << " [label=\"" << edgeType << "\"";
-            if (prettyPrint) {
-                ss << " " << edgeStyle[edgeType];
-            }
-            ss << "]";
-        }
-        os << op->nodeID << ss.str() << endl;
+        string ss = printerHelper();
+        os << op->nodeID << ss << endl;
 
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_val.defined()) {
@@ -434,6 +391,26 @@ namespace sam {
             edgeType = "";
         }
         printedNodes.push_back(op->nodeID);
+    }
+
+    string SAMDotEdgePrinter::printerHelper() {
+        stringstream ss;
+        ss << " [";
+        if (!edgeType.empty()) {
+            string labelExt = printComment ? "_"+comment : "";
+            ss << "label=\"" << edgeType << labelExt << "\"";
+            if (prettyPrint) {
+                ss << " " << edgeStyle[edgeType];
+            }
+        }
+        if (printComment) {
+            ss << " comment=\"" << comment << "\"";
+        }
+        ss << "]";
+
+        printComment = false;
+        comment = "";
+        return ss.str();
     }
 
 }
