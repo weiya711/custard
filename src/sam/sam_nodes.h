@@ -59,9 +59,9 @@ struct FiberLookupNode : public SAMNode {
     FiberLookupNode() : SAMNode() {}
 
     FiberLookupNode(const SamIR& out_ref, const SamIR& out_crd, const IndexVar& i,
-                    const TensorVar& tensorVar, int& mode, bool root, bool source, int nodeID)
+                    const TensorVar& tensorVar, int& mode, bool root, bool source, bool printEdgeName, int nodeID)
             : SAMNode(), out_ref(out_ref), out_crd(out_crd),
-            tensorVar(tensorVar), mode(mode), i(i), root(root), source(source), nodeID(nodeID) {
+            tensorVar(tensorVar), mode(mode), i(i), root(root), source(source), printEdgeName(printEdgeName), nodeID(nodeID) {
         taco_iassert(mode < tensorVar.getOrder());
         modeFormat = tensorVar.getFormat().getModeFormats().at(mode);
     }
@@ -72,6 +72,9 @@ struct FiberLookupNode : public SAMNode {
 
     std::string getName() const override;
 
+    std::string getTensorName() const override {
+        return tensorVar.getName();
+    }
 
     //Outputs
     SamIR out_ref;
@@ -90,6 +93,7 @@ struct FiberLookupNode : public SAMNode {
     /// This is used in the AHA backend example for glb mode
     bool root = false;
     bool source = false;
+    bool printEdgeName = false;
 
     int nodeID = 0;
 
@@ -112,6 +116,10 @@ struct FiberWriteNode : public SAMNode {
     }
 
     std::string getName() const override;
+
+    std::string getTensorName() const override {
+        return tensorVar.getName();
+    }
 
     // Outputs
     // TODO: figure out if write scanners should have outputs (for workspaces)
@@ -150,6 +158,10 @@ struct RepeatNode : public SAMNode {
     }
 
     std::string getName() const override;
+
+    std::string getTensorName() const override {
+        return tensorVar.getName();
+    }
 
     // Outputs
     SamIR out_ref;
@@ -255,8 +267,8 @@ struct RepeatSigGenNode : public SAMNode {
 struct ArrayNode : public SAMNode {
     ArrayNode() : SAMNode() {}
 
-    ArrayNode(const SamIR& out_val, const TensorVar& tensorVar, int nodeID) :
-            SAMNode(), out_val(out_val), tensorVar(tensorVar), nodeID(nodeID) {}
+    ArrayNode(const SamIR& out_val, const TensorVar& tensorVar, bool printEdgeName, int nodeID) :
+            SAMNode(), out_val(out_val), tensorVar(tensorVar), printEdgeName(printEdgeName), nodeID(nodeID) {}
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
@@ -264,12 +276,17 @@ struct ArrayNode : public SAMNode {
 
     std::string getName() const override;
 
+    std::string getTensorName() const override {
+        return tensorVar.getName();
+    }
+
     // No Outputs
     SamIR out_val;
 
     // Metadata
     TensorVar tensorVar;
     bool vals = true;
+    bool printEdgeName = false;
 
     int nodeID = 0;
 

@@ -48,6 +48,8 @@ namespace sam {
             return to<SubType>(*this);
         }
 
+        std::string getTensorName() const;
+
         /// Print the index expression.
         friend std::ostream &operator<<(std::ostream &, const SamIR &);
     };
@@ -60,15 +62,9 @@ namespace sam {
 
 
         FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i, TensorVar tensorVar, int mode, int nodeID,
-                    bool root=false, bool source=true);
+                    bool root=false, bool source=true, bool printEdgeName=false);
 
         typedef FiberLookupNode Node;
-
-        bool outputsDefined() const;
-
-        SamIR getOutRef() const;
-
-        SamIR getOutCrd() const;
 
         TensorVar getTensorVar() const;
 
@@ -164,7 +160,7 @@ namespace sam {
 
         explicit Array(const ArrayNode *);
 
-        Array(SamIR out_val, TensorVar tensorVar, int nodeID);
+        Array(SamIR out_val, TensorVar tensorVar, int nodeID, bool printEdgeName=false);
 
         typedef ArrayNode Node;
 

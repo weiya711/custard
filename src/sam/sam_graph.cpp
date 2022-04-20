@@ -571,11 +571,11 @@ namespace taco {
 
                     if (count == 0) {
                         node = FiberLookup(hasContraction ? contractNode : inputValsArrays[tensorVar], hasContraction ? contractNode : crdDest,
-                                           indexvar, tensorVar, mode,  id, isRoot, true);
+                                           indexvar, tensorVar, mode,  id, isRoot, true, hasContraction);
                     } else {
                         auto prevSAMNode = hasContraction ? contractNode : nodeMap[prevIndexVar][ntp];
                         node = FiberLookup(prevSAMNode, hasContraction ? contractNode : crdDest,
-                                           indexvar, tensorVar, mode, id, isRoot, true);
+                                           indexvar, tensorVar, mode, id, isRoot, true, hasContraction);
                     }
 
                     mode--;

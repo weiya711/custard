@@ -14,6 +14,10 @@ namespace sam {
         ptr->accept(v);
     }
 
+    string SamIR::getTensorName() const {
+        return ptr->getTensorName();
+    }
+
     std::ostream& operator<<(std::ostream &os, const taco::sam::SamIR& sam) {
         return os;
     }
@@ -23,20 +27,8 @@ namespace sam {
     }
 
     FiberLookup::FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i,
-                             TensorVar tensorVar, int mode, int nodeID, bool root, bool source) :
-    FiberLookup(new FiberLookupNode(out_ref, out_crd, i, tensorVar, mode, root, source, nodeID)) {}
-
-    bool FiberLookup::outputsDefined() const {
-        return getOutCrd().defined() and getOutRef().defined();
-    }
-
-    SamIR FiberLookup::getOutRef() const {
-        return getNode(*this)->out_ref;
-    }
-
-    SamIR FiberLookup::getOutCrd() const {
-        return getNode(*this)->out_crd;
-    }
+                             TensorVar tensorVar, int mode, int nodeID, bool root, bool source, bool printEdgeName) :
+    FiberLookup(new FiberLookupNode(out_ref, out_crd, i, tensorVar, mode, root, source, printEdgeName, nodeID)) {}
 
     TensorVar FiberLookup::getTensorVar() const {
         return getNode(*this)->tensorVar;
@@ -110,8 +102,8 @@ namespace sam {
     Array::Array(const ArrayNode *n) : SamIR(n){
     }
 
-    Array::Array(SamIR out_val, TensorVar tensorVar, int nodeID) :
-    Array(new ArrayNode(out_val, tensorVar, nodeID)) {
+    Array::Array(SamIR out_val, TensorVar tensorVar, int nodeID, bool printEdgeName) :
+    Array(new ArrayNode(out_val, tensorVar, printEdgeName, nodeID)) {
     }
 
     Mul::Mul(const MulNode *n) : SamIR(n){

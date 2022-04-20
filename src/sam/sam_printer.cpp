@@ -262,6 +262,7 @@ namespace sam {
 
     void SAMDotEdgePrinter::visit(const FiberLookupNode *op) {
         if (!op->root) {
+
             string ss = printerHelper();
             os << op->nodeID << ss << endl;
         }
@@ -269,12 +270,16 @@ namespace sam {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
 
             if (op->out_crd.defined()) {
+                printComment = op->printEdgeName;
+                comment = "in"+op->tensorVar.getName();
                 edgeType = "crd";
                 os << tab << op->nodeID << " -> ";
                 op->out_crd.accept(this);
             }
 
             if (op->out_ref.defined()) {
+                printComment = op->printEdgeName;
+                comment = "in"+op->tensorVar.getName();
                 edgeType = "ref";
                 os << tab << op->nodeID << " -> ";
                 op->out_ref.accept(this);
@@ -328,9 +333,6 @@ namespace sam {
     }
 
     void SAMDotEdgePrinter::visit(const JoinerNode *op) {
-        printComment = true;
-        comment = "in"+to_string(op->numInputs);
-
         string ss = printerHelper();
         os << op->nodeID << ss << endl;
 
@@ -348,9 +350,9 @@ namespace sam {
 
             for (int i = 0; i < (int)op->out_refs.size(); i++) {
                 auto out_ref = op->out_refs.at(i);
-                printComment = true;
-                comment = "out"+to_string(i);
                 if (out_ref.defined()) {
+                    printComment = true;
+                    comment = "out"+out_ref.getTensorName();
                     edgeType = "ref";
                     os << tab << op->nodeID << " -> ";
                     out_ref.accept(this);

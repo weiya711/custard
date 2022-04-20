@@ -48,6 +48,10 @@ public:
 
     virtual std::string getName() const = 0;
 
+    virtual std::string getTensorName() const {
+        return "";
+    }
+
     SamNodeType type_info() const;
 
     bool printed = false;
