@@ -74,9 +74,12 @@ namespace sam {
 
         void visit(const ComputeNode *) override;
 
+        void visit(const SparseAccumulatorNode *) override;
+
     private:
         std::ostream &os;
         bool prettyPrint = true;
+        bool printAttributes = true;
         std::string tab = "    ";
         std::string name = "SAM";
         std::vector<int> printedNodes;
@@ -113,11 +116,12 @@ namespace sam {
 
         std::ostream &os;
         bool prettyPrint = true;
+        bool printAttributes = true;
         std::string tab = "    ";
         std::string edgeType;
         std::vector<int> printedNodes;
         std::map<std::string, std::string> edgeStyle = {{"ref", "style=bold"}, {"crd", "style=dashed"},
-                                                        {"repsig", "style=dotted"}, {"bv", "style=dashed"}};
+                                                        {"repsig", "style=dotted"}, {"bv", "style=dashed"}, {"",""}};
         bool printComment = false;
         std::string comment;
     };
