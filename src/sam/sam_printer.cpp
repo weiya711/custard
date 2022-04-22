@@ -40,7 +40,10 @@ namespace sam {
             os << tab;
             os << to_string(op->nodeID) << " [comment=\"broadcast\"";
             if (prettyPrint) {
-                os << " shape=point style=invis";
+                os << " shape=point style=invis ";
+            }
+            if (printAttributes) {
+                os << "name=broadcast";
             }
             os << "]" << endl;
 
@@ -60,7 +63,7 @@ namespace sam {
             string root = op->root ? "_root" : "";
 
             std::stringstream comment;
-            comment << "\"fiber_lookup-" << op->i.getName() << "_" << op->tensorVar.getName()
+            comment << "\"fiber-lookup_" << op->i.getName() << "_" << op->tensorVar.getName()
                     << std::to_string(op->mode)
                     << "_" << op->modeFormat.getName() << src << root << "\"";
 
@@ -69,6 +72,15 @@ namespace sam {
             if (prettyPrint) {
                 os << " label=\"" << op->getName() << "\"";
                 os << " color=green4 shape=box style=filled";
+            }
+            if (printAttributes) {
+                os << " name=fiberlookup"
+                      " index=" << op->i.getName() <<
+                      " tensor=" << op->tensorVar.getName() <<
+                      " mode=" << std::to_string(op->mode) <<
+                      " format=" << op->modeFormat.getName() <<
+                      " src=" << (op->source ? "true" : "false") <<
+                      " root=" << (op->root ? "true" : "false");
             }
             os << "]" << endl;
 
@@ -89,9 +101,9 @@ namespace sam {
 
             std::stringstream comment;
             if (op->vals) {
-                comment << "\"fiber_write-vals" << "_" << op->tensorVar.getName() << sink << "\"";
+                comment << "\"fiber-write_vals" << "_" << op->tensorVar.getName() << sink << "\"";
             } else {
-                comment << "\"fiber_write-" << op->i.getName() << "_" << op->tensorVar.getName()
+                comment << "\"fiber-write_" << op->i.getName() << "_" << op->tensorVar.getName()
                         << std::to_string(op->mode)
                         << "_" << op->modeFormat.getName() << sink << "\"";
             }
@@ -101,6 +113,20 @@ namespace sam {
             if (prettyPrint) {
                 os << " label=\"" << op->getName() << "\"";
                 os << " color=green3 shape=box style=filled";
+            }
+            if (printAttributes) {
+                os << " name=fiberwrite";
+                if (op->vals) {
+                    os << " tensor=" << op->tensorVar.getName() <<
+                          " mode=vals";
+                } else {
+                    os << " index=" << op->i.getName() <<
+                          " tensor=" << op->tensorVar.getName() <<
+                          " mode=" << std::to_string(op->mode) <<
+                          " format=" << op->modeFormat.getName();
+                }
+                os << " sink=" << (op->sink ? "true" : "false");
+
             }
             os << "]" << endl;
         }
@@ -112,13 +138,18 @@ namespace sam {
             string root = op->root ? "_root" : "";
 
             std::stringstream comment;
-            comment << "\"repeat-" << op->i.getName() << "_" << op->tensorVar.getName() << root << "\"";
+            comment << "\"repeat_" << op->i.getName() << "_" << op->tensorVar.getName() << root << "\"";
 
             os << tab;
             os << to_string(op->nodeID) << " [comment=" << comment.str();
             if (prettyPrint) {
                 os << " label=\"" << op->getName() << "\"";
                 os << " color=cyan2 shape=box style=filled";
+            }
+            if (printAttributes) {
+                os << " name=repeat"
+                      " index=" << op->i.getName() <<
+                      " tensor=" << op->tensorVar.getName();
             }
             os << "]" << endl;
 
@@ -133,13 +164,17 @@ namespace sam {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
 
             std::stringstream comment;
-            comment << "\"repsiggen-" << op->i.getName() << "\"";
+            comment << "\"rep-siggen_" << op->i.getName() << "\"";
 
             os << tab;
             os << to_string(op->nodeID) << " [comment=" << comment.str();
             if (prettyPrint) {
                 os << " label=\"" << op->getName() << "\"";
                 os << " color=cyan3 shape=box style=filled";
+            }
+            if (printAttributes) {
+                os << " name=repsiggen"
+                      " index=" << op->i.getName();
             }
             os << "]" << endl;
 
@@ -153,13 +188,17 @@ namespace sam {
     void SAMDotNodePrinter::visit(const JoinerNode *op) {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             std::stringstream comment;
-            comment << "\"" << op->getNodeName() << "-" << op->i.getName() << "\"";
+            comment << "\"" << op->getNodeName() << "_" << op->i.getName() << "\"";
 
             os << tab;
             os << to_string(op->nodeID) << " [comment=" << comment.str();
             if (prettyPrint) {
                 os << " label=\"" << op->getName() << "\"";
                 os << " color=purple shape=box style=filled";
+            }
+            if (printAttributes) {
+                os << " name=" << op->getNodeName() <<
+                      " index=" << op->i.getName();
             }
             os << "]" << endl;
 
@@ -186,6 +225,10 @@ namespace sam {
                 os << " label=\"" << op->getName() << "\"";
                 os << " color=green2 shape=box style=filled";
             }
+            if (printAttributes) {
+                os << " name=arrayvals"
+                      " tensor=" << op->tensorVar.getName();
+            }
             os << "]" << endl;
 
             if (op->out_val.defined()) {
@@ -206,6 +249,34 @@ namespace sam {
             if (prettyPrint) {
                 os << " label=\"" << op->getName() << "\"";
                 os << " color=brown shape=box style=filled";
+            }
+            if (printAttributes) {
+                os << " name=" << op->getNodeName();
+            }
+            os << "]" << endl;
+
+            if (op->out_val.defined()) {
+                op->out_val.accept(this);
+            }
+
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
+    void SAMDotNodePrinter::visit(const SparseAccumulatorNode *op) {
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            std::stringstream comment;
+            comment << "\"" << op->getNodeName() <<"\"";
+
+            os << tab;
+            os << to_string(op->nodeID) << " [comment=" << comment.str();
+            if (prettyPrint) {
+                os << " label=\"" << op->getName() << "\"";
+                os << " color=brown shape=box style=filled";
+            }
+            if (printAttributes) {
+                os << " name=" << op->getNodeName() <<
+                      " order=" << op->order;
             }
             os << "]" << endl;
 
@@ -398,12 +469,13 @@ namespace sam {
     string SAMDotEdgePrinter::printerHelper() {
         stringstream ss;
         ss << " [";
-        if (!edgeType.empty()) {
-            string labelExt = printComment ? "_"+comment : "";
-            ss << "label=\"" << edgeType << labelExt << "\"";
-            if (prettyPrint) {
-                ss << " " << edgeStyle[edgeType];
-            }
+        string labelExt = printComment ? "_"+comment : "";
+        ss << "label=\"" << (edgeType.empty() ? "val" : edgeType) << labelExt << "\"";
+        if (prettyPrint) {
+            ss << " " << edgeStyle[edgeType];
+        }
+        if (printAttributes) {
+            ss << " name=" << (edgeType.empty() ? "val" : edgeType);
         }
         if (printComment) {
             ss << " comment=\"" << comment << "\"";
