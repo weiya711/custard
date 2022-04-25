@@ -620,11 +620,11 @@ namespace taco {
     void SAMGraph::printInputIterationAsDot(std::ostream& os) {
         auto sam = makeInputIterationGraph();
         SAMDotNodePrinter printer(os);
-        printer.setPrintAttributes(false);
+        //printer.setPrintAttributes(false);
         printer.print(sam);
 
         SAMDotEdgePrinter printerEdge(os);
-        printerEdge.setPrintAttributes(false);
+        //printerEdge.setPrintAttributes(false);
         printerEdge.print(sam);
     }
 
