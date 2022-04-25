@@ -76,6 +76,7 @@ namespace sam {
 
         void visit(const SparseAccumulatorNode *) override;
 
+        void setPrintAttributes(bool printAttributes);
     private:
         std::ostream &os;
         bool prettyPrint = true;
@@ -111,6 +112,7 @@ namespace sam {
 
         void visit(const ComputeNode *) override;
 
+        void setPrintAttributes(bool printAttributes);
     private:
         std::string printerHelper();
 
