@@ -149,7 +149,8 @@ namespace sam {
             if (printAttributes) {
                 os << " type=\"repeat\""
                       " index=\"" << op->i.getName() << "\"" <<
-                      " tensor=\"" << op->tensorVar.getName() << "\"";
+                      " tensor=\"" << op->tensorVar.getName() << "\"" <<
+                      " root=\"" << (op->root ? "true" : "false") << "\"";
             }
             os << "]" << endl;
 

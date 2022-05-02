@@ -499,13 +499,12 @@ namespace taco {
 
                 auto vars = tensorPath.getVariables();
 
-                // FIXME: see if repeat nodes are ever a root
                 if (std::count(vars.begin(), vars.end(), indexvar) == 0) {
                     if (count == 0) {
-                        node = Repeat(inputValsArrays[tensorVar], indexvar, tensorVar, id, false);
+                        node = Repeat(inputValsArrays[tensorVar], indexvar, tensorVar, id, isRoot);
                     } else {
                         auto prevSAMNode = nodeMap[prevIndexVar][ntp];
-                        node = Repeat(prevSAMNode, indexvar, tensorVar, id, false);
+                        node = Repeat(prevSAMNode, indexvar, tensorVar, id, isRoot);
                     }
                     id++;
                     nodes[ntp] = node;
