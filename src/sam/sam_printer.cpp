@@ -338,7 +338,6 @@ namespace sam {
 
     void SAMDotEdgePrinter::visit(const FiberLookupNode *op) {
         if (!op->root) {
-
             string ss = printerHelper();
             os << op->nodeID << ss << endl;
         }
@@ -377,10 +376,8 @@ namespace sam {
     }
 
     void SAMDotEdgePrinter::visit(const RepeatNode *op) {
-        if (!op->root) {
-            string ss = printerHelper();
-            os << op->nodeID << ss << endl;
-        }
+        string ss = printerHelper();
+        os << op->nodeID << ss << endl;
 
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_ref.defined()) {
