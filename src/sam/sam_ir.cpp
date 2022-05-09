@@ -27,7 +27,7 @@ namespace sam {
     }
 
     FiberLookup::FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i,
-                             TensorVar tensorVar, int mode, int nodeID, bool root, bool source, bool printEdgeName) :
+                             const TensorVar& tensorVar, int mode, int nodeID, bool root, bool source, bool printEdgeName) :
     FiberLookup(new FiberLookupNode(out_ref, out_crd, i, tensorVar, mode, root, source, printEdgeName, nodeID)) {}
 
     TensorVar FiberLookup::getTensorVar() const {
@@ -41,14 +41,15 @@ namespace sam {
     // FiberWrite
     FiberWrite::FiberWrite(const FiberWriteNode *n) : SamIR(n) {}
 
-    FiberWrite::FiberWrite(IndexVar i, TensorVar tensorVar, int mode, int nodeID, bool sink, bool vals) :
-    FiberWrite(new FiberWriteNode(i, tensorVar, mode, sink, vals, nodeID)) {}
+    FiberWrite::FiberWrite(IndexVar i, const TensorVar& tensorVar, int mode, string maxSegSize, string maxCrdSize,
+                           int nodeID, bool sink, bool vals) :
+    FiberWrite(new FiberWriteNode(i, tensorVar, mode, maxSegSize, maxCrdSize, sink, vals, nodeID)) {}
 
     // Repeat
     Repeat::Repeat(const RepeatNode *n) : SamIR(n){
     }
 
-    Repeat::Repeat(SamIR out_ref, IndexVar i, TensorVar tensorVar, int nodeID, bool root) :
+    Repeat::Repeat(SamIR out_ref, IndexVar i, const TensorVar& tensorVar, int nodeID, bool root) :
     Repeat(new RepeatNode(out_ref, i, tensorVar, root, nodeID)) {
     }
 
@@ -81,7 +82,7 @@ namespace sam {
     Root::Root(const RootNode *n) : SamIR(n){
     }
 
-    Root::Root(const vector<SamIR> nodes) : Root(new RootNode(nodes)){
+    Root::Root(const vector<SamIR>& nodes) : Root(new RootNode(nodes)){
     }
 
     RepeatSigGen::RepeatSigGen(const RepeatSigGenNode *n) : SamIR(n){
@@ -102,7 +103,7 @@ namespace sam {
     Array::Array(const ArrayNode *n) : SamIR(n){
     }
 
-    Array::Array(SamIR out_val, TensorVar tensorVar, int nodeID, bool printEdgeName) :
+    Array::Array(SamIR out_val, const TensorVar& tensorVar, int nodeID, bool printEdgeName) :
     Array(new ArrayNode(out_val, tensorVar, printEdgeName, nodeID)) {
     }
 

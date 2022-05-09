@@ -101,11 +101,18 @@ namespace sam {
 
             std::stringstream comment;
             if (op->vals) {
-                comment << "\"type=fiberwrite,mode=vals" << ",tensor=" << op->tensorVar.getName() << sink << "\"";
+                comment << "\"type=fiberwrite,mode=vals" << ",tensor=" << op->tensorVar.getName() <<
+                ",size=" << op->maxCrdSize <<
+                sink << "\"";
             } else {
                 comment << "\"type=fiberwrite,index=" << op->i.getName() << ",tensor=" << op->tensorVar.getName()
                         << ",mode=" << std::to_string(op->mode)
-                        << ",format=" << op->modeFormat.getName() << sink << "\"";
+                        << ",format=" << op->modeFormat.getName();
+                if (op->modeFormat == compressed) {
+                    comment << ",segsize=" << op->maxSegSize
+                            << ",crdsize=" << op->maxCrdSize;
+                }
+                comment << sink << "\"";
             }
 
             os << tab;
@@ -118,12 +125,17 @@ namespace sam {
                 os << " type=\"fiberwrite\"";
                 if (op->vals) {
                     os << " tensor=\"" << op->tensorVar.getName() << "\"" <<
-                          " mode=\"vals\"";
+                          " mode=\"vals\"" <<
+                          " size=\"" << op->maxCrdSize << "\"";
                 } else {
                     os << " index=\"" << op->i.getName() << "\"" <<
                           " tensor=\"" << op->tensorVar.getName() << "\"" <<
                           " mode=\"" << std::to_string(op->mode) << "\"" <<
                           " format=\"" << op->modeFormat.getName() << "\"";
+                    if (op->modeFormat == compressed) {
+                        os << " segsize=\"" << op->maxSegSize << "\"" <<
+                              " crdsize=\"" << op->maxCrdSize << "\"";
+                    }
                 }
                 os << " sink=" << (op->sink ? "\"true\"" : "\"false\"");
 

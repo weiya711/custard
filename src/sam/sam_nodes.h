@@ -104,9 +104,10 @@ struct FiberLookupNode : public SAMNode {
 struct FiberWriteNode : public SAMNode {
     FiberWriteNode() : SAMNode() {}
 
-    FiberWriteNode(IndexVar& i,
-                   const TensorVar& tensorVar, int mode, bool sink, bool vals, int nodeID)
-            : SAMNode(), tensorVar(tensorVar), mode(mode), i(i), sink(sink), vals(vals), nodeID(nodeID) {
+    FiberWriteNode(IndexVar& i, const TensorVar& tensorVar, int mode, std::string maxSegSize, std::string maxCrdSize,
+                   bool sink, bool vals, int nodeID)
+            : SAMNode(), tensorVar(tensorVar), mode(mode), i(i), maxSegSize(maxSegSize), maxCrdSize(maxCrdSize),
+              sink(sink), vals(vals), nodeID(nodeID) {
         taco_iassert(mode < tensorVar.getOrder());
         modeFormat = tensorVar.getFormat().getModeFormats().at(mode);
     }
@@ -129,6 +130,8 @@ struct FiberWriteNode : public SAMNode {
     int mode = 0;
     ModeFormat modeFormat;
     IndexVar i;
+    std::string maxSegSize;
+    std::string maxCrdSize;
 
     /// Dimension of this fiber lookup
     int dim = 0;
