@@ -92,7 +92,7 @@ namespace taco {
         std::map<IndexVar, std::vector<TensorVar>> getContractions() const;
 
         /// Print the contraction map for the SAM graph
-        void printContractions(std::ostream &os);
+        void printContractions(std::ostream &os) const;
 
         /// Print the output iteration path (Fiber writes) for the results of the SAM graph
         void printOutputIteration(std::ostream &os);
@@ -101,9 +101,9 @@ namespace taco {
         std::vector<sam::SamNodeType> getComputation() const;
 
         /// Print the computation (ops, reductions) of the SAM graph
-        void printComputation(std::ostream &os);
+        void printComputation(std::ostream &os) const;
 
-        std::map<IndexVar, ModeFormat> getFormatMapping(const TensorPath path);
+        static std::map<IndexVar, ModeFormat> getFormatMapping(const TensorPath path);
 
         /// Print the input iteration path (Fiber lookups and repeats) for the SAM graph
         void printInputIteration(std::ostream &os);

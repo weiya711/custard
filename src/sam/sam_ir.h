@@ -61,7 +61,7 @@ namespace sam {
         explicit FiberLookup(const FiberLookupNode *);
 
 
-        FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i, TensorVar tensorVar, int mode, int nodeID,
+        FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i, const TensorVar& tensorVar, int mode, int nodeID,
                     bool root=false, bool source=true, bool printEdgeName=false);
 
         typedef FiberLookupNode Node;
@@ -77,7 +77,8 @@ namespace sam {
 
         explicit FiberWrite(const FiberWriteNode *);
 
-        FiberWrite(IndexVar i, TensorVar tensorVar, int mode, int nodeID, bool sink=true, bool vals=false);
+        FiberWrite(IndexVar i, const TensorVar& tensorVar, int mode, std::string maxSegSize, std::string maxCrdSize,
+                   int nodeID, bool sink=true, bool vals=false);
 
         typedef FiberWriteNode Node;
 
@@ -89,7 +90,7 @@ namespace sam {
 
         explicit Repeat(const RepeatNode *);
 
-        Repeat(SamIR out_ref, IndexVar i, TensorVar tensorVar, int nodeID, bool root=false);
+        Repeat(SamIR out_ref, IndexVar i, const TensorVar& tensorVar, int nodeID, bool root=false);
 
         typedef RepeatNode Node;
 
@@ -124,7 +125,7 @@ namespace sam {
 
         explicit Root(const RootNode *);
 
-        Root(std::vector<SamIR> nodes);
+        explicit Root(const std::vector<SamIR>& nodes);
 
         typedef RootNode Node;
 
@@ -160,7 +161,7 @@ namespace sam {
 
         explicit Array(const ArrayNode *);
 
-        Array(SamIR out_val, TensorVar tensorVar, int nodeID, bool printEdgeName=false);
+        Array(SamIR out_val, const TensorVar& tensorVar, int nodeID, bool printEdgeName=false);
 
         typedef ArrayNode Node;
 

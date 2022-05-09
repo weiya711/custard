@@ -263,7 +263,7 @@ namespace taco {
 
         auto indexVars = getIndexVars();
         auto isInnerReduction = true;
-        for (std::vector<IndexVar>::reverse_iterator it = indexVars.rbegin(); it != indexVars.rend(); it++) {
+        for (auto it = indexVars.rbegin(); it != indexVars.rend(); it++) {
             if (isReduction(*it) && isInnerReduction) {
                 compute.push_back(SamNodeType::Reduce);
             } else if (isReduction(*it)) {
@@ -276,14 +276,14 @@ namespace taco {
         return compute;
     }
 
-    void SAMGraph::printComputation(std::ostream& os) {
+    void SAMGraph::printComputation(std::ostream& os) const {
         auto compute = getComputation();
         for (auto it : compute) {
             os << (int)it << endl;
         }
     }
 
-    void SAMGraph::printContractions(std::ostream& os) {
+    void SAMGraph::printContractions(std::ostream& os) const {
         auto contractMap = getContractions();
 
         for (auto p : contractMap) {
@@ -328,6 +328,39 @@ namespace taco {
             inputTensors.push_back(tensorPath.getAccess().getTensorVar());
         }
 
+        map<IndexVar, string> dimensionMap;
+        string dimName;
+        for (auto& tensorPath : getTensorPaths()) {
+            auto vars = tensorPath.getVariables();
+            auto tensor = tensorPath.getAccess().getTensorVar();
+
+            for (int mode = 0; mode < (int)vars.size(); mode++) {
+                if (!contains(dimensionMap,vars.at(mode))) {
+                    dimensionMap[vars.at(mode)] = tensor.getName() + to_string(mode) + "_dim";
+                }
+            }
+        }
+
+        map<IndexVar, pair<std::string, std::string>> sizeMap;
+        IndexVar prevIndexVar;
+        for (int count = 0; count < (int) getResultTensorPath().getSize(); count++) {
+            IndexVar indexvar = getResultTensorPath().getVariables().at(count);
+            string segSize;
+            string crdSize;
+            if (count == 0) {
+                segSize = "2";
+                crdSize = dimensionMap.at(indexvar);
+            } else {
+                assert(prevIndexVar.defined());
+                segSize = sizeMap.at(prevIndexVar).second + "+1";
+                crdSize = sizeMap.at(prevIndexVar).second + "*" + dimensionMap.at(indexvar);
+            }
+            sizeMap[indexvar] = pair<string,string>(segSize, crdSize);
+
+            prevIndexVar = indexvar;
+        }
+
+
         // Output Assignment
         map<IndexVar, SamIR> resultWriteIRNodes;
         map<IndexVar, bool> resultHasSource;
@@ -336,8 +369,9 @@ namespace taco {
         for (int count = 0; count < (int) getOrderedIndexVars().size(); count++) {
             IndexVar indexvar = getOrderedIndexVars().at(getOrderedIndexVars().size() - 1 - count);
             if (std::count(resultVars.begin(), resultVars.end(), indexvar) > 0) {
-                auto node = FiberWrite(indexvar, getResultTensorPath().getAccess().getTensorVar(), mode, id,
-                                       true);
+                auto sizeStr = sizeMap.at(indexvar);
+                auto node = FiberWrite(indexvar, getResultTensorPath().getAccess().getTensorVar(), mode,
+                                       sizeStr.first, sizeStr.second, id, true);
                 id++;
                 mode--;
                 resultWriteIRNodes[indexvar] = node;
@@ -346,11 +380,19 @@ namespace taco {
 
         }
 
-        SamIR resultWriteVals = FiberWrite(nullptr, getResultTensorPath().getAccess().getTensorVar(), 0, id,
-                                           true, true);
+        string valsSizeStr;
+        for (const auto& indexvar : getResultTensorPath().getVariables()) {
+            if (contains(dimensionMap, indexvar)) {
+                if (!valsSizeStr.empty()) {
+                    valsSizeStr += "*";
+                }
+                valsSizeStr += dimensionMap.at(indexvar);
+            }
+        }
+        SamIR resultWriteVals = FiberWrite(nullptr, getResultTensorPath().getAccess().getTensorVar(),
+                                           0, "",valsSizeStr, id, true, true);
         id++;
 
-        // TODO: FINISH THIS
         // Elementwise Compute Operations
         vector<SamNodeType> compute;
         match(content->expr,
@@ -404,7 +446,6 @@ namespace taco {
                         reductionOrder.pop_back();
                         break;
                     case SamNodeType::SparseAccumulator:
-                        // FIXME: make sure order is correct (currently isn't)
                         taco_iassert(!reductionOrder.empty()) << "Number of reduction (Sparse Accumulation) nodes does not "
                                                                  "match the number of reduction orders.";
                         computeNode = taco::sam::SparseAccumulator(prevComputeNode, reductionOrder.back(), id);
