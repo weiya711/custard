@@ -84,6 +84,8 @@ namespace sam {
         std::string tab = "    ";
         std::string name = "SAM";
         std::vector<int> printedNodes;
+
+        std::string printTensorFormats(const RootNode *op);
     };
 
     class SAMDotEdgePrinter : public SAMVisitor {

@@ -630,9 +630,14 @@ namespace taco {
             nodeMap[indexvar] = nodes;
         }
 
+        vector<TensorVar> tensors;
+        tensors.push_back(getResultTensorPath().getAccess().getTensorVar());
+        for (auto tp : getTensorPaths()) {
+            tensors.push_back(tp.getAccess().getTensorVar());
+        }
 
         taco_iassert(numIndexVars > 0);
-        auto root = Root(rootNodes);
+        auto root = Root(rootNodes, tensors);
         return root;
     }
 
@@ -656,6 +661,7 @@ namespace taco {
             os << endl;
         }
     }
+
 
     void SAMGraph::printInputIterationAsDot(std::ostream& os) {
         auto sam = makeInputIterationGraph();

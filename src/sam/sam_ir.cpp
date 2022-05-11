@@ -82,7 +82,7 @@ namespace sam {
     Root::Root(const RootNode *n) : SamIR(n){
     }
 
-    Root::Root(const vector<SamIR>& nodes) : Root(new RootNode(nodes)){
+    Root::Root(const vector<SamIR>& nodes, const vector<TensorVar>& tensors) : Root(new RootNode(nodes, tensors)){
     }
 
     RepeatSigGen::RepeatSigGen(const RepeatSigGenNode *n) : SamIR(n){
