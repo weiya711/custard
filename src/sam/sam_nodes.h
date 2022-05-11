@@ -16,7 +16,8 @@ namespace sam {
 struct RootNode : public SAMNode {
     RootNode() : SAMNode() {}
 
-    explicit RootNode(const std::vector<SamIR>& nodes) : SAMNode(), nodes(nodes) {
+    explicit RootNode(const std::vector<SamIR>& nodes, const std::vector<TensorVar>& tensors) :
+    SAMNode(), nodes(nodes), tensors(tensors) {
     }
 
     void accept(SAMVisitorStrict* v) const override {
@@ -28,6 +29,7 @@ struct RootNode : public SAMNode {
     }
 
     std::vector<SamIR> nodes;
+    std::vector<TensorVar> tensors;
 
     SamNodeType _type_info = SamNodeType::Root;
 };

@@ -5,6 +5,8 @@
 #include <algorithm>
 #include "sam_printer.h"
 #include "sam_nodes.h"
+#include "taco/util/strings.h"
+
 using namespace std;
 
 namespace taco {
@@ -21,14 +23,48 @@ namespace sam {
     }
 
 
+    string SAMDotNodePrinter::printTensorFormats(const RootNode *op) {
+        stringstream ss;
+        for (int i = 0; i < (int) op->tensors.size(); i++) {
+            auto t = op->tensors.at(i);
+            vector<char> formats;
+            for (auto f : t.getFormat().getModeFormats()) {
+                if (f == ModeFormat::Dense)
+                    formats.push_back('d');
+                else if (f == ModeFormat::Sparse)
+                    formats.push_back('s');
+                else if (f == ModeFormat::Sparse(ModeFormat::NOT_UNIQUE))
+                    formats.push_back('u');
+                else if (f == ModeFormat::Sparse(ModeFormat::ZEROLESS))
+                    formats.push_back('z');
+                else if (f == ModeFormat::Singleton(ModeFormat::NOT_UNIQUE))
+                    formats.push_back('c');
+                else if (f == ModeFormat::Singleton)
+                    formats.push_back('q');
+                else
+                    taco_iassert(false) << "Format not supported" << endl;
+            }
+            ss << t.getName() << "=" << util::join(formats, "") << util::join(t.getFormat().getModeOrdering(), "");
+            if (i != (int) op->tensors.size() - 1) {
+                ss << ",";
+            } else {
+                ss << "\"";
+            }
+        }
+        return ss.str();
+    }
+
     void SAMDotNodePrinter::print(const SamIR &sam) {
+        os << "digraph " << name << " {" << endl;
         sam.accept(this);
     }
 
 
     // SAMDotNodePrinter
     void SAMDotNodePrinter::visit(const RootNode *op) {
-        os << "digraph " << name << " {" << endl;
+        // Add comments so formats are passed along
+        os << tab;
+        os << "comment=\"" << printTensorFormats(op) << endl;
         for (const auto& node : op->nodes) {
             node.accept(this);
         }

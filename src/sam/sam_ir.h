@@ -125,7 +125,7 @@ namespace sam {
 
         explicit Root(const RootNode *);
 
-        explicit Root(const std::vector<SamIR>& nodes);
+        explicit Root(const std::vector<SamIR>& nodes, const std::vector<TensorVar>& tensors);
 
         typedef RootNode Node;
 
