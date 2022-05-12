@@ -26,7 +26,8 @@ enum class SamNodeType {
     Mul,
     Add,
     Reduce,
-    SparseAccumulator
+    SparseAccumulator,
+    CrdDrop
 };
 
 enum class SamEdgeType {

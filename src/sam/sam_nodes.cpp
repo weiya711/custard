@@ -51,5 +51,11 @@ namespace sam {
         ss << "SparseAccumulator " << to_string(order);
         return ss.str();
     }
+
+    std::string CrdDropNode::getName() const {
+        stringstream ss;
+        ss << "CrdDrop " << outer.getName() << "," << inner.getName();
+        return ss.str();
+    }
 }
 }

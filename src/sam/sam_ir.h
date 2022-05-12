@@ -50,6 +50,10 @@ namespace sam {
 
         std::string getTensorName() const;
 
+        SamNodeType getType() const {
+            return this->ptr->type_info();
+        }
+
         /// Print the index expression.
         friend std::ostream &operator<<(std::ostream &, const SamIR &);
     };
@@ -137,7 +141,7 @@ namespace sam {
 
         explicit Intersect(const IntersectNode *);
 
-        Intersect(SamIR out_crd, std::vector<SamIR> out_refs, IndexVar i, int nodeID);
+        Intersect(SamIR out_crd, std::vector<SamIR> out_refs, IndexVar i, int nodeID, bool printEdgeName=false);
 
         typedef IntersectNode Node;
 
@@ -149,7 +153,7 @@ namespace sam {
 
         explicit Union(const UnionNode *);
 
-        Union(SamIR out_crd, std::vector<SamIR> out_refs, IndexVar i, int nodeID);
+        Union(SamIR out_crd, std::vector<SamIR> out_refs, IndexVar i, int nodeID, bool printEdgeName=false);
 
         typedef UnionNode Node;
 
@@ -212,6 +216,18 @@ namespace sam {
         SparseAccumulator(SamIR out_val, int order, int nodeID);
 
         typedef SparseAccumulatorNode Node;
+
+    };
+
+    class CrdDrop : public SamIR {
+    public:
+        CrdDrop() = default;
+
+        explicit CrdDrop(const CrdDropNode *);
+
+        CrdDrop(SamIR out_outer_crd, SamIR out_inner_crd, IndexVar outer, IndexVar inner, int nodeID);
+
+        typedef CrdDropNode Node;
 
     };
 }

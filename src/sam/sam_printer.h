@@ -20,7 +20,7 @@ namespace sam {
 
         using SAMVisitorStrict::visit;
 
-//        void visit(const RootNode *);
+        void visit(const RootNode *);
 
         void visit(const FiberLookupNode *) override;
 
@@ -43,6 +43,8 @@ namespace sam {
 //        void visit(const ReduceNode *);
 //
 //        void visit(const SparseAccumulatorNode *);
+
+        void visit(const CrdDropNode *);
 
     private:
         std::ostream &os;
@@ -75,6 +77,8 @@ namespace sam {
         void visit(const ComputeNode *) override;
 
         void visit(const SparseAccumulatorNode *) override;
+
+        void visit(const CrdDropNode *) override;
 
         void setPrintAttributes(bool printAttributes);
     private:
@@ -113,6 +117,8 @@ namespace sam {
         void visit(const ArrayNode *) override;
 
         void visit(const ComputeNode *) override;
+
+        void visit(const CrdDropNode *) override;
 
         void setPrintAttributes(bool printAttributes);
     private:

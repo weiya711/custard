@@ -95,11 +95,13 @@ struct FiberLookupNode : public SAMNode {
     /// This is used in the AHA backend example for glb mode
     bool root = false;
     bool source = false;
+
+    /// This is needed for joiner nodes
     bool printEdgeName = false;
 
     int nodeID = 0;
 
-    SamNodeType _type_info = SamNodeType::FiberLookup;
+    static const SamNodeType _type_info = SamNodeType::FiberLookup;
 
 };
 
@@ -197,11 +199,13 @@ struct JoinerNode : public SAMNode {
     int numInputs = 0;
     int nodeID = 0;
 
+    // Needed for coordinate drops
+    bool printEdgeName = false;
 protected:
     JoinerNode() : SAMNode() {}
 
-    JoinerNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, int nodeID) :
-    SAMNode(), out_crd(out_crd), out_refs(out_refs), i(i), nodeID(nodeID) {
+    JoinerNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, bool printEdgeName, int nodeID) :
+    SAMNode(), out_crd(out_crd), out_refs(out_refs), i(i), printEdgeName(printEdgeName), nodeID(nodeID) {
 //        numInputs = (int)out_refs.size();
     }
 };
@@ -209,8 +213,8 @@ protected:
 struct IntersectNode : public JoinerNode {
     IntersectNode() : JoinerNode() {}
 
-    IntersectNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, int nodeID) :
-    JoinerNode(out_crd, out_refs, i, nodeID) {}
+    IntersectNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, bool printEdgeName, int nodeID) :
+    JoinerNode(out_crd, out_refs, i, printEdgeName, nodeID) {}
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
@@ -229,8 +233,8 @@ struct IntersectNode : public JoinerNode {
 struct UnionNode : public JoinerNode {
     UnionNode() : JoinerNode() {}
 
-    UnionNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, int nodeID) :
-    JoinerNode(out_crd, out_refs, i, nodeID) {}
+    UnionNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, bool printEdgeName, int nodeID) :
+    JoinerNode(out_crd, out_refs, i, printEdgeName, nodeID) {}
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
@@ -398,6 +402,32 @@ struct SparseAccumulatorNode : public ComputeNode {
     static const SamNodeType _type_info = SamNodeType::SparseAccumulator;
 };
 
+struct CrdDropNode : public SAMNode {
+    CrdDropNode() : SAMNode() {}
+
+    CrdDropNode(const SamIR& out_outer_crd, const SamIR& out_inner_crd,
+                const IndexVar& outer, const IndexVar& inner, int nodeID) :
+            SAMNode(), out_outer_crd(out_outer_crd), out_inner_crd(out_inner_crd),
+            outer(outer), inner(inner), nodeID(nodeID) {}
+
+    void accept(SAMVisitorStrict* v) const override {
+        v->visit(this);
+    }
+
+    std::string getName() const override;
+
+    // No Outputs
+    SamIR out_outer_crd;
+    SamIR out_inner_crd;
+
+    // Metadata
+    IndexVar outer;
+    IndexVar inner;
+
+    int nodeID = 0;
+
+    static const SamNodeType _type_info = SamNodeType::CrdDrop;
+};
 
 /// Returns true if expression e is of type E.
 template <typename E>
