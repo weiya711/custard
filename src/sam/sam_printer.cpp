@@ -61,7 +61,8 @@ namespace sam {
                 else
                     taco_iassert(false) << "Format not supported" << endl;
             }
-            ss << t.getName() << "=" << util::join(formats, "") << util::join(t.getFormat().getModeOrdering(), "");
+            ss << t.getName() << "=" << (formats.empty() ? "none" : util::join(formats, "")) <<
+            util::join(t.getFormat().getModeOrdering(), "");
             if (i != (int) op->tensors.size() - 1) {
                 ss << ",";
             } else {
