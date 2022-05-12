@@ -512,9 +512,6 @@ namespace sam {
 
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_crd.defined()) {
-                os << "intersect " << op->i.getName() << " " << op->printEdgeName <<
-                int(op->out_crd.getType()) << std::endl;
-
                 printComment = op->printEdgeName;
                 comment = op->i.getName();
                 edgeType = "crd";
