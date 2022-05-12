@@ -171,8 +171,8 @@ namespace sam {
     Array::Array(const ArrayNode *n) : SamIR(n){
     }
 
-    Array::Array(SamIR out_val, const TensorVar& tensorVar, int nodeID, bool printEdgeName) :
-    Array(new ArrayNode(out_val, tensorVar, printEdgeName, nodeID)) {
+    Array::Array(SamIR out_val, const TensorVar& tensorVar, int nodeID, bool printEdgeName, bool root) :
+    Array(new ArrayNode(out_val, tensorVar, printEdgeName, root, nodeID)) {
     }
 
     template <> bool isa<Array>(SamIR s) {

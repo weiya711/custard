@@ -65,7 +65,8 @@ struct FiberLookupNode : public SAMNode {
             : SAMNode(), out_ref(out_ref), out_crd(out_crd),
             tensorVar(tensorVar), mode(mode), i(i), root(root), source(source), printEdgeName(printEdgeName), nodeID(nodeID) {
         taco_iassert(mode < tensorVar.getOrder());
-        modeFormat = tensorVar.getFormat().getModeFormats().at(mode);
+        if (mode >= 0)
+            modeFormat = tensorVar.getFormat().getModeFormats().at(mode);
     }
 
     void accept(SAMVisitorStrict* v) const override{
@@ -113,7 +114,8 @@ struct FiberWriteNode : public SAMNode {
             : SAMNode(), tensorVar(tensorVar), mode(mode), i(i), maxSegSize(maxSegSize), maxCrdSize(maxCrdSize),
               sink(sink), vals(vals), nodeID(nodeID) {
         taco_iassert(mode < tensorVar.getOrder());
-        modeFormat = tensorVar.getFormat().getModeFormats().at(mode);
+        if (mode >= 0)
+            modeFormat = tensorVar.getFormat().getModeFormats().at(mode);
     }
 
     void accept(SAMVisitorStrict* v) const override {
@@ -276,8 +278,8 @@ struct RepeatSigGenNode : public SAMNode {
 struct ArrayNode : public SAMNode {
     ArrayNode() : SAMNode() {}
 
-    ArrayNode(const SamIR& out_val, const TensorVar& tensorVar, bool printEdgeName, int nodeID) :
-            SAMNode(), out_val(out_val), tensorVar(tensorVar), printEdgeName(printEdgeName), nodeID(nodeID) {}
+    ArrayNode(const SamIR& out_val, const TensorVar& tensorVar, bool printEdgeName, bool root, int nodeID) :
+            SAMNode(), out_val(out_val), tensorVar(tensorVar), printEdgeName(printEdgeName), root(root), nodeID(nodeID) {}
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
@@ -294,8 +296,10 @@ struct ArrayNode : public SAMNode {
 
     // Metadata
     TensorVar tensorVar;
+
     bool vals = true;
     bool printEdgeName = false;
+    bool root = false;
 
     int nodeID = 0;
 

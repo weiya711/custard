@@ -165,7 +165,7 @@ namespace sam {
 
         explicit Array(const ArrayNode *);
 
-        Array(SamIR out_val, const TensorVar& tensorVar, int nodeID, bool printEdgeName=false);
+        Array(SamIR out_val, const TensorVar& tensorVar, int nodeID, bool printEdgeName=false, bool root=false);
 
         typedef ArrayNode Node;
 
