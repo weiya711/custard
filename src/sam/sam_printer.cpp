@@ -357,7 +357,7 @@ namespace sam {
     void SAMDotNodePrinter::visit(const CrdDropNode *op) {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             std::stringstream comment;
-            comment << "\"type=crddrop," <<",outer=" << op->outer << ",inner=" << op->inner << "\"";
+            comment << "\"type=crddrop,outer=" << op->outer << ",inner=" << op->inner << "\"";
 
             os << tab;
             os << to_string(op->nodeID) << " [comment=" << comment.str();
