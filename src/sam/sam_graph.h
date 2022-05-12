@@ -113,7 +113,7 @@ namespace taco {
 
         void printInputIterationAsDot(std::ostream& os);
 
-        sam::SamIR makeInputIterationGraph();
+        sam::SamIR makeGraph();
 
 
 
