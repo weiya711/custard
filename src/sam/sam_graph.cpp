@@ -323,6 +323,7 @@ namespace taco {
         int numIndexVars = (int)getOrderedIndexVars().size();
         
         auto resultVars = getResultTensorPath().getVariables();
+        auto resultTensor = getResultTensorPath().getAccess().getTensorVar();
 
         vector<TensorVar> inputTensors;
         for (const auto& tensorPath : getTensorPaths()) {
@@ -342,6 +343,15 @@ namespace taco {
                 if (!contains(dimensionMap,vars.at(mode))) {
                     dimensionMap[vars.at(mode)] = tensor.getName() + to_string(mode) + "_dim";
                 }
+            }
+        }
+
+        // If dimension doesn't exist due to result broadcasting, use result dimension
+        for (auto indexvar : getOrderedIndexVars()) {
+            if (!contains(dimensionMap, indexvar)) {
+                auto it = find(resultVars.begin(), resultVars.end(), indexvar);
+                int mode = resultVars.begin() - it;
+                dimensionMap[indexvar] = resultTensor.getName() + to_string(mode) + "_dim";
             }
         }
 
@@ -369,7 +379,7 @@ namespace taco {
         }
 
         // Output Assignment: Vals ONLY
-        string valsSizeStr;
+        string valsSizeStr = "1";
         for (const auto& indexvar : resultVars) {
             if (contains(dimensionMap, indexvar)) {
                 if (!valsSizeStr.empty()) {
@@ -379,7 +389,7 @@ namespace taco {
             }
         }
         SamIR resultWriteVals = FiberWrite(nullptr, getResultTensorPath().getAccess().getTensorVar(),
-                                           0, "",valsSizeStr, id,
+                                           -1, "",valsSizeStr, id,
                                            true, true);
         id++;
 
@@ -453,7 +463,10 @@ namespace taco {
         map<TensorVar, SamIR> inputValsArrays;
 
         for (auto tensor : inputTensors) {
-            auto array = taco::sam::Array(compute.empty() ? resultWriteVals : computeNode, tensor, id);
+            // check if array is scalar
+            bool isScalar = tensor.getFormat().getOrder() == 0;
+            auto array = taco::sam::Array(compute.empty() ? resultWriteVals : computeNode, tensor, id,
+                                          false, isScalar);
             id++;
             inputValsArrays[tensor] = array;
         }
@@ -553,7 +566,7 @@ namespace taco {
             }
         }
 
-        // Input Iteration without Contractions
+        // Input Iteration
         map<IndexVar, vector<SamIR>> nodeMap;
         for (int count = 0; count < numIndexVars; count++) {
 
@@ -565,6 +578,7 @@ namespace taco {
                            inputIterationCrdDst.at(indexvar) : SamIR();
 
             bool hasContraction = contractions.at(indexvar).size() > 1;
+
             // FIXME: This will eventually need to be the iteration algebra for fused kernels
             bool isIntersection = contains(contractionType, contractions.at(indexvar)) &&
                                   contractionType.at(contractions.at(indexvar));
@@ -676,7 +690,11 @@ namespace taco {
             tensors.push_back(tp.getAccess().getTensorVar());
         }
 
-        taco_iassert(numIndexVars > 0);
+        // Trivial case where all inputs and outputs are scalar
+        if (numIndexVars == 0)
+            for (auto arr : inputValsArrays)
+                rootNodes.push_back(arr.second);
+
         auto root = Root(rootNodes, tensors);
         return root;
     }

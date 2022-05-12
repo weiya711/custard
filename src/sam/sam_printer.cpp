@@ -512,7 +512,7 @@ namespace sam {
 
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_crd.defined()) {
-                cout << "intersect " << op->i.getName() << " " << op->printEdgeName <<
+                os << "intersect " << op->i.getName() << " " << op->printEdgeName <<
                 int(op->out_crd.getType()) << std::endl;
 
                 printComment = op->printEdgeName;
@@ -538,8 +538,10 @@ namespace sam {
     }
 
     void SAMDotEdgePrinter::visit(const ArrayNode *op) {
-        string ss = printerHelper();
-        os << op->nodeID << ss << endl;
+        if (!op->root) {
+            string ss = printerHelper();
+            os << op->nodeID << ss << endl;
+        }
 
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_val.defined()) {
