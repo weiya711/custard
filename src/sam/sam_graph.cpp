@@ -658,11 +658,11 @@ namespace taco {
 
                 auto vars = tensorPath.getVariables();
 
-                auto it = find(vars.begin(), vars.end(), indexvar);
-                mode = it != vars.end() ? (int) distance(vars.begin(), it) : 9999;
-
                 if (std::count(vars.begin(), vars.end(), indexvar) > 0) {
-
+                    auto it = find(vars.begin(), vars.end(), indexvar);
+                    taco_iassert(it != vars.end())  << "Indexvar " << indexvar << " should be in the tensor path"
+                                                    << tensorPath;
+                    mode = tensorVar.getFormat().getModeOrdering().at(distance(vars.begin(), it));
                     if (count == 0) {
                         node = FiberLookup(hasContraction ? contractNode : inputValsArrays[tensorVar], hasContraction ? contractNode : crdDest,
                                            indexvar, tensorVar, mode,  id, isRoot, true, hasContraction);
@@ -672,7 +672,6 @@ namespace taco {
                                            indexvar, tensorVar, mode, id, isRoot, true, hasContraction);
                     }
 
-                    mode--;
                     id++;
                     nodes[ntp] = node;
 
