@@ -61,13 +61,7 @@ struct FiberLookupNode : public SAMNode {
     FiberLookupNode() : SAMNode() {}
 
     FiberLookupNode(const SamIR& out_ref, const SamIR& out_crd, const IndexVar& i,
-                    const TensorVar& tensorVar, int& mode, bool root, bool source, bool printEdgeName, int nodeID)
-            : SAMNode(), out_ref(out_ref), out_crd(out_crd),
-            tensorVar(tensorVar), mode(mode), i(i), root(root), source(source), printEdgeName(printEdgeName), nodeID(nodeID) {
-        taco_iassert(mode < tensorVar.getOrder());
-        if (mode >= 0)
-            modeFormat = tensorVar.getFormat().getModeFormats().at(mode);
-    }
+                    const TensorVar& tensorVar, int mode, bool root, bool source, bool printEdgeName, int nodeID);
 
     void accept(SAMVisitorStrict* v) const override{
         v->visit(this);
@@ -110,13 +104,7 @@ struct FiberWriteNode : public SAMNode {
     FiberWriteNode() : SAMNode() {}
 
     FiberWriteNode(IndexVar& i, const TensorVar& tensorVar, int mode, std::string maxSegSize, std::string maxCrdSize,
-                   bool sink, bool vals, int nodeID)
-            : SAMNode(), tensorVar(tensorVar), mode(mode), i(i), maxSegSize(maxSegSize), maxCrdSize(maxCrdSize),
-              sink(sink), vals(vals), nodeID(nodeID) {
-        taco_iassert(mode < tensorVar.getOrder());
-        if (mode >= 0)
-            modeFormat = tensorVar.getFormat().getModeFormats().at(mode);
-    }
+                   bool sink, bool vals, int nodeID);
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);

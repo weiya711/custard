@@ -349,10 +349,10 @@ namespace taco {
             auto vars = tensorPath.getVariables();
             auto tensor = tensorPath.getAccess().getTensorVar();
 
-            for (int i = 0; i < (int)vars.size(); i++) {
-                if (!contains(dimensionMap,vars.at(i))) {
-                    size_t mode = getMode(vars.at(i), tensorPath);
-                    dimensionMap[vars.at(i)] = tensor.getName() + to_string(mode) + "_dim";
+            for (auto & var : vars) {
+                if (!contains(dimensionMap,var)) {
+                    size_t mode = getMode(var, tensorPath);
+                    dimensionMap[var] = tensor.getName() + to_string(mode) + "_dim";
                 }
             }
         }
