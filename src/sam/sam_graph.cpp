@@ -315,6 +315,16 @@ namespace taco {
         return result;
     }
 
+    size_t SAMGraph::getMode(const IndexVar& indexvar, const TensorPath& path) const {
+        auto vars = path.getVariables();
+        auto tensor = path.getAccess().getTensorVar();
+        auto it = find(vars.begin(), vars.end(), indexvar);
+        taco_iassert(it != vars.end())  << "Indexvar " << indexvar << " should be in the tensor path"
+                                        << path;
+        auto mode = tensor.getFormat().getModeOrdering().at(distance(vars.begin(), it));
+        return mode;
+    }
+
     SamIR SAMGraph::makeGraph() {
         int id = 0;
 
@@ -339,9 +349,10 @@ namespace taco {
             auto vars = tensorPath.getVariables();
             auto tensor = tensorPath.getAccess().getTensorVar();
 
-            for (int mode = 0; mode < (int)vars.size(); mode++) {
-                if (!contains(dimensionMap,vars.at(mode))) {
-                    dimensionMap[vars.at(mode)] = tensor.getName() + to_string(mode) + "_dim";
+            for (int i = 0; i < (int)vars.size(); i++) {
+                if (!contains(dimensionMap,vars.at(i))) {
+                    size_t mode = getMode(vars.at(i), tensorPath);
+                    dimensionMap[vars.at(i)] = tensor.getName() + to_string(mode) + "_dim";
                 }
             }
         }
@@ -349,8 +360,7 @@ namespace taco {
         // If dimension doesn't exist due to result broadcasting, use result dimension
         for (auto indexvar : getOrderedIndexVars()) {
             if (!contains(dimensionMap, indexvar)) {
-                auto it = find(resultVars.begin(), resultVars.end(), indexvar);
-                int mode = resultVars.begin() - it;
+                size_t mode = getMode(indexvar, getResultTensorPath());
                 dimensionMap[indexvar] = resultTensor.getName() + to_string(mode) + "_dim";
             }
         }
@@ -520,15 +530,14 @@ namespace taco {
         // Output Assignment: Crds ONLY
         map<IndexVar, SamIR> resultWriteIRNodes;
         map<IndexVar, bool> resultHasSource;
-        int mode = (int) resultVars.size() - 1;
         for (int count = 0; count < (int) getOrderedIndexVars().size(); count++) {
             IndexVar indexvar = getOrderedIndexVars().at(getOrderedIndexVars().size() - 1 - count);
             if (std::count(resultVars.begin(), resultVars.end(), indexvar) > 0) {
+                size_t mode = getMode(indexvar, getResultTensorPath());
                 auto sizeStr = sizeMap.at(indexvar);
                 auto node = FiberWrite(indexvar, getResultTensorPath().getAccess().getTensorVar(), mode,
                                        sizeStr.first, sizeStr.second, id, true);
                 id++;
-                mode--;
                 resultWriteIRNodes[indexvar] = node;
                 resultHasSource[indexvar] = false;
             }
@@ -659,10 +668,7 @@ namespace taco {
                 auto vars = tensorPath.getVariables();
 
                 if (std::count(vars.begin(), vars.end(), indexvar) > 0) {
-                    auto it = find(vars.begin(), vars.end(), indexvar);
-                    taco_iassert(it != vars.end())  << "Indexvar " << indexvar << " should be in the tensor path"
-                                                    << tensorPath;
-                    mode = tensorVar.getFormat().getModeOrdering().at(distance(vars.begin(), it));
+                    size_t mode = getMode(indexvar, tensorPath);
                     if (count == 0) {
                         node = FiberLookup(hasContraction ? contractNode : inputValsArrays[tensorVar], hasContraction ? contractNode : crdDest,
                                            indexvar, tensorVar, mode,  id, isRoot, true, hasContraction);
