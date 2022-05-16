@@ -80,7 +80,6 @@ namespace taco {
         /// Print an SAM graph as a dot file.
         void printAsDot(std::ostream &);
 
-
         /// SAM Only Below, Iteration Graph Above (Should make SAM Graph a derived class of IterationGraph)
 
         /// Returns the iteration graph roots; the index variables with no parents.
@@ -112,6 +111,9 @@ namespace taco {
         void generateDotJSON(std::ostream &);
 
         void printInputIterationAsDot(std::ostream& os);
+
+        /// Given an index variable and tensor path, gets the indexvariables mode for that tensor path
+        size_t getMode(const IndexVar &, const TensorPath &) const;
 
         sam::SamIR makeGraph();
 
