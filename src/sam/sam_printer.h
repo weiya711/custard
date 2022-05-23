@@ -120,6 +120,8 @@ namespace sam {
 
         void visit(const CrdDropNode *) override;
 
+        void visit(const SparseAccumulatorNode *) override;
+
         void setPrintAttributes(bool printAttributes);
     private:
         std::string printerHelper();

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "sam_printer.h"
 #include "sam_nodes.h"
+#include "taco/util/collections.h"
 #include "taco/util/strings.h"
 
 using namespace std;
@@ -351,6 +352,10 @@ namespace sam {
                 op->out_val.accept(this);
             }
 
+            for (auto out_crd: op->out_crds) {
+                out_crd.second.accept(this);
+            }
+
         }
         printedNodes.push_back(op->nodeID);
     }
@@ -406,8 +411,12 @@ namespace sam {
             string ss = printerHelper();
             os << op->nodeID << ss << endl;
 
-            for (const auto &node: op->outputs) {
+            for (SamIR node: op->outputs) {
                 if (node.defined()) {
+                    if (op->printEdgeName) {
+                        printComment = op->printEdgeName;
+                        comment = contains(op->edgeName, node) ? op->edgeName.at(node) : "";
+                    }
                     switch (op->type) {
                         case SamEdgeType::crd:
                             edgeType = "crd";
@@ -442,7 +451,7 @@ namespace sam {
 
             if (op->out_crd.defined()) {
                 printComment = op->printEdgeName;
-                comment = "in-"+op->tensorVar.getName();
+                comment = contains(op->edgeName, op->out_crd) ? op->edgeName.at(op->out_crd) : "";
                 edgeType = "crd";
                 os << tab << op->nodeID << " -> ";
                 op->out_crd.accept(this);
@@ -450,7 +459,7 @@ namespace sam {
 
             if (op->out_ref.defined()) {
                 printComment = op->printEdgeName;
-                comment = "in-"+op->tensorVar.getName();
+                comment = contains(op->edgeName, op->out_ref) ? op->edgeName.at(op->out_ref) : "";
                 edgeType = "ref";
                 os << tab << op->nodeID << " -> ";
                 op->out_ref.accept(this);
@@ -513,7 +522,7 @@ namespace sam {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_crd.defined()) {
                 printComment = op->printEdgeName;
-                comment = op->i.getName();
+                comment = op->edgeName;
                 edgeType = "crd";
                 os << tab << op->nodeID << " -> ";
                 op->out_crd.accept(this);
@@ -568,6 +577,31 @@ namespace sam {
         printedNodes.push_back(op->nodeID);
     }
 
+    void SAMDotEdgePrinter::visit(const SparseAccumulatorNode *op) {
+        string ss = printerHelper();
+        os << op->nodeID << ss << endl;
+
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            if (op->out_val.defined()) {
+                edgeType = "";
+                os << tab << op->nodeID << " -> ";
+                op->out_val.accept(this);
+            }
+
+            for (auto out_crd: op->out_crds) {
+                printComment = true;
+                comment = "out-" + to_string(out_crd.first);
+                edgeType = "crd";
+                os << tab << op->nodeID << " -> ";
+                out_crd.second.accept(this);
+            }
+
+
+            edgeType = "";
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
     void SAMDotEdgePrinter::visit(const CrdDropNode *op) {
         string ss = printerHelper();
         os << op->nodeID << ss << endl;
@@ -597,7 +631,7 @@ namespace sam {
     string SAMDotEdgePrinter::printerHelper() {
         stringstream ss;
         ss << " [";
-        string labelExt = printComment ? "_"+comment : "";
+        string labelExt = printComment && !comment.empty() ? "_"+comment : "";
         ss << "label=\"" << (edgeType.empty() ? "val" : edgeType) << labelExt << "\"";
         if (prettyPrint) {
             ss << edgeStyle[edgeType];

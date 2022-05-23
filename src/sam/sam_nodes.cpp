@@ -10,9 +10,24 @@ namespace sam {
     // FiberLookupNode
     FiberLookupNode::FiberLookupNode(const SamIR& out_ref, const SamIR& out_crd, const IndexVar& i,
                                      const TensorVar& tensorVar, int mode, bool root, bool source, bool printEdgeName,
+                                     std::map<SamIR, std::string> edgeName, int nodeID)
+            : SAMNode(), out_ref(out_ref), out_crd(out_crd), tensorVar(tensorVar), mode(mode), i(i), root(root),
+            source(source), printEdgeName(printEdgeName), edgeName(edgeName), nodeID(nodeID) {
+        taco_iassert(mode < tensorVar.getOrder());
+        if (mode >= 0) {
+            auto modeOrders = tensorVar.getFormat().getModeOrdering();
+            auto it = std::find(modeOrders.begin(), modeOrders.end(), mode);
+            auto loc = std::distance(modeOrders.begin(), it);
+
+            modeFormat = tensorVar.getFormat().getModeFormats().at(loc);
+        }
+    }
+
+    FiberLookupNode::FiberLookupNode(const SamIR& out_ref, const SamIR& out_crd, const IndexVar& i,
+                                     const TensorVar& tensorVar, int mode, bool root, bool source, bool printEdgeName,
                                      int nodeID)
             : SAMNode(), out_ref(out_ref), out_crd(out_crd), tensorVar(tensorVar), mode(mode), i(i), root(root),
-            source(source), printEdgeName(printEdgeName), nodeID(nodeID) {
+              source(source), printEdgeName(printEdgeName), nodeID(nodeID) {
         taco_iassert(mode < tensorVar.getOrder());
         if (mode >= 0) {
             auto modeOrders = tensorVar.getFormat().getModeOrdering();
@@ -25,7 +40,8 @@ namespace sam {
 
     std::string FiberLookupNode::getName() const {
         stringstream ss;
-        ss << "FiberLookup " << i.getName() << ": " << tensorVar.getName() << to_string(mode) << "\\n" << modeFormat.getName();
+        ss << "FiberLookup " << i.getName() << ": " << tensorVar.getName() << to_string(mode) << "\\n" <<
+        modeFormat.getName();
         return ss.str();
     }
 
@@ -78,7 +94,7 @@ namespace sam {
         return ss.str();
     }
 
-    std::string SparseAccumulatorNode::getNodeStr() const {
+    std::string SparseAccumulatorNode::getName() const {
         stringstream ss;
         ss << "SparseAccumulator " << to_string(order);
         return ss.str();

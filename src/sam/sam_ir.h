@@ -68,6 +68,10 @@ namespace sam {
         FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i, const TensorVar& tensorVar, int mode, int nodeID,
                     bool root=false, bool source=true, bool printEdgeName=false);
 
+        FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i, const TensorVar& tensorVar, int mode, int nodeID,
+                    std::map<SamIR, std::string> edgeName,
+                    bool root=false, bool source=true);
+
         typedef FiberLookupNode Node;
 
         TensorVar getTensorVar() const;
@@ -118,7 +122,8 @@ namespace sam {
 
         explicit Broadcast(const BroadcastNode *);
 
-        Broadcast(std::vector<SamIR> outputs, SamEdgeType type, int nodeID);
+        Broadcast(std::vector<SamIR> outputs, SamEdgeType type, int nodeID, bool printEdgeName=false);
+        Broadcast(std::vector<SamIR> outputs, SamEdgeType type, int nodeID, std::map<SamIR, std::string> edgeName);
 
         typedef BroadcastNode Node;
     };
@@ -141,7 +146,8 @@ namespace sam {
 
         explicit Intersect(const IntersectNode *);
 
-        Intersect(SamIR out_crd, std::vector<SamIR> out_refs, IndexVar i, int nodeID, bool printEdgeName=false);
+        Intersect(SamIR out_crd, std::vector<SamIR> out_refs, IndexVar i, int nodeID, bool printEdgeName=false,
+                  std::string edgeName="");
 
         typedef IntersectNode Node;
 
@@ -153,7 +159,8 @@ namespace sam {
 
         explicit Union(const UnionNode *);
 
-        Union(SamIR out_crd, std::vector<SamIR> out_refs, IndexVar i, int nodeID, bool printEdgeName=false);
+        Union(SamIR out_crd, std::vector<SamIR> out_refs, IndexVar i, int nodeID, bool printEdgeName=false,
+              std::string edgeName="");
 
         typedef UnionNode Node;
 
@@ -213,7 +220,7 @@ namespace sam {
 
         explicit SparseAccumulator(const SparseAccumulatorNode *);
 
-        SparseAccumulator(SamIR out_val, int order, int nodeID);
+        SparseAccumulator(SamIR out_val, std::map<int, SamIR> out_crds, int order, int nodeID);
 
         typedef SparseAccumulatorNode Node;
 
