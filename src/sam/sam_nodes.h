@@ -38,8 +38,14 @@ struct RootNode : public SAMNode {
 struct BroadcastNode : public SAMNode {
     BroadcastNode() : SAMNode() {}
 
-    explicit BroadcastNode(const std::vector<SamIR>& outputs, const SamEdgeType& type, int nodeID) :
-    SAMNode(), outputs(outputs), type(type), nodeID(nodeID) {
+    BroadcastNode(const std::vector<SamIR>& outputs, const SamEdgeType& type,
+                  bool printEdgeName, int nodeID) :
+            SAMNode(), outputs(outputs), type(type), printEdgeName(printEdgeName), nodeID(nodeID) {
+    }
+
+    BroadcastNode(const std::vector<SamIR>& outputs, const SamEdgeType& type,
+                           bool printEdgeName, std::map<SamIR, std::string> edgeName,  int nodeID) :
+            SAMNode(), outputs(outputs), type(type), printEdgeName(printEdgeName), edgeName(edgeName), nodeID(nodeID) {
     }
 
     void accept(SAMVisitorStrict* v) const override {
@@ -52,6 +58,11 @@ struct BroadcastNode : public SAMNode {
 
     std::vector<SamIR> outputs;
     SamEdgeType type;
+
+    // Needed for Sparse Accumulator
+    bool printEdgeName = false;
+    std::map<SamIR, std::string> edgeName;
+
     int nodeID = 0;
 
     SamNodeType _type_info = SamNodeType::Broadcast;
@@ -62,6 +73,10 @@ struct FiberLookupNode : public SAMNode {
 
     FiberLookupNode(const SamIR& out_ref, const SamIR& out_crd, const IndexVar& i,
                     const TensorVar& tensorVar, int mode, bool root, bool source, bool printEdgeName, int nodeID);
+
+    FiberLookupNode(const SamIR& out_ref, const SamIR& out_crd, const IndexVar& i,
+                    const TensorVar& tensorVar, int mode, bool root, bool source, bool printEdgeName,
+                    std::map<SamIR, std::string> edgeName, int nodeID);
 
     void accept(SAMVisitorStrict* v) const override{
         v->visit(this);
@@ -92,7 +107,9 @@ struct FiberLookupNode : public SAMNode {
     bool source = false;
 
     /// This is needed for joiner nodes
+    /// Also Sparse Accumulator
     bool printEdgeName = false;
+    std::map<SamIR, std::string> edgeName;
 
     int nodeID = 0;
 
@@ -190,12 +207,16 @@ struct JoinerNode : public SAMNode {
     int nodeID = 0;
 
     // Needed for coordinate drops
+    // Needed also for Sparse Accumulator Nodes
     bool printEdgeName = false;
+    std::string edgeName;
 protected:
     JoinerNode() : SAMNode() {}
 
-    JoinerNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, bool printEdgeName, int nodeID) :
-    SAMNode(), out_crd(out_crd), out_refs(out_refs), i(i), printEdgeName(printEdgeName), nodeID(nodeID) {
+    JoinerNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, bool printEdgeName, std::string edgeName,
+               int nodeID) :
+    SAMNode(), out_crd(out_crd), out_refs(out_refs), i(i), printEdgeName(printEdgeName), edgeName(edgeName),
+    nodeID(nodeID) {
 //        numInputs = (int)out_refs.size();
     }
 };
@@ -203,8 +224,9 @@ protected:
 struct IntersectNode : public JoinerNode {
     IntersectNode() : JoinerNode() {}
 
-    IntersectNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, bool printEdgeName, int nodeID) :
-    JoinerNode(out_crd, out_refs, i, printEdgeName, nodeID) {}
+    IntersectNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, bool printEdgeName, std::string edgeName,
+                  int nodeID) :
+    JoinerNode(out_crd, out_refs, i, printEdgeName, edgeName, nodeID) {}
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
@@ -223,8 +245,9 @@ struct IntersectNode : public JoinerNode {
 struct UnionNode : public JoinerNode {
     UnionNode() : JoinerNode() {}
 
-    UnionNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, bool printEdgeName, int nodeID) :
-    JoinerNode(out_crd, out_refs, i, printEdgeName, nodeID) {}
+    UnionNode(SamIR& out_crd, std::vector<SamIR>& out_refs, IndexVar& i, bool printEdgeName, std::string edgeName,
+              int nodeID) :
+    JoinerNode(out_crd, out_refs, i, printEdgeName, edgeName, nodeID) {}
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
@@ -374,23 +397,29 @@ struct ReduceNode : public ComputeNode {
     static const SamNodeType _type_info = SamNodeType::Reduce;
 };
 
-struct SparseAccumulatorNode : public ComputeNode {
-    SparseAccumulatorNode() : ComputeNode() {}
+struct SparseAccumulatorNode : public SAMNode {
+    SparseAccumulatorNode() : SAMNode() {}
 
-    SparseAccumulatorNode(const SamIR& out_val, int order, int nodeID) : ComputeNode(out_val, nodeID), order(order) {}
+    SparseAccumulatorNode(const SamIR& out_val, const std::map<int, SamIR> out_crds, int order, int nodeID) :
+    SAMNode(), out_val(out_val), out_crds(out_crds), order(order), nodeID(nodeID) {}
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
     }
 
-    std::string getNodeName() const override {
+    std::string getNodeName() const {
         return "spaccumulator";
     }
-    std::string getNodeStr() const override;
+    std::string getName() const override;
+
+    // Outputs
+    SamIR out_val;
+    std::map<int, SamIR> out_crds;
 
     // Metadata
     int order = 0;
 
+    int nodeID = 0;
     static const SamNodeType _type_info = SamNodeType::SparseAccumulator;
 };
 

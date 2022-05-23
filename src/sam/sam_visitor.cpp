@@ -99,7 +99,12 @@ namespace sam {
     }
 
     void SAMVisitor::visit(const SparseAccumulatorNode *op) {
-        visit(static_cast<const ComputeNode*>(op));
+        if (op->out_val.defined())
+            op->out_val.accept(this);
+
+        for (auto out_crd: op->out_crds) {
+            out_crd.second.accept(this);
+        }
     }
 
     void SAMVisitor::visit(const CrdDropNode *op) {

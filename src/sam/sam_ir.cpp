@@ -28,8 +28,15 @@ namespace sam {
     }
 
     FiberLookup::FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i,
-                             const TensorVar& tensorVar, int mode, int nodeID, bool root, bool source, bool printEdgeName) :
+                             const TensorVar& tensorVar, int mode, int nodeID, bool root, bool source,
+                             bool printEdgeName) :
     FiberLookup(new FiberLookupNode(out_ref, out_crd, i, tensorVar, mode, root, source, printEdgeName, nodeID)) {}
+
+    FiberLookup::FiberLookup(SamIR out_ref, SamIR out_crd, IndexVar i,
+                             const TensorVar& tensorVar, int mode, int nodeID, std::map<SamIR, std::string> edgeName,
+                             bool root, bool source) :
+            FiberLookup(new FiberLookupNode(out_ref, out_crd, i, tensorVar, mode, root, source, true,
+                                            edgeName, nodeID)) {}
 
     
     TensorVar FiberLookup::getTensorVar() const {
@@ -86,8 +93,10 @@ namespace sam {
     Intersect::Intersect(const IntersectNode *n) : SamIR(n){
     }
 
-    Intersect::Intersect(SamIR out_crd, vector<SamIR> out_refs, IndexVar i, int nodeID, bool printEdgeName) :
-            Intersect(new IntersectNode(out_crd, out_refs, i, printEdgeName, nodeID)) {
+    Intersect::Intersect(SamIR out_crd, vector<SamIR> out_refs, IndexVar i, int nodeID, bool printEdgeName,
+                         string edgeName) :
+            Intersect(new IntersectNode(out_crd, out_refs, i, printEdgeName, edgeName,
+                                        nodeID)) {
     }
 
     template <> bool isa<Intersect>(SamIR s) {
@@ -103,8 +112,8 @@ namespace sam {
     Union::Union(const UnionNode *n) : SamIR(n){
     }
 
-    Union::Union(SamIR out_crd, vector<SamIR> out_refs, IndexVar i, int nodeID, bool printEdgeName) :
-            Union(new UnionNode(out_crd, out_refs, i, printEdgeName, nodeID)) {
+    Union::Union(SamIR out_crd, vector<SamIR> out_refs, IndexVar i, int nodeID, bool printEdgeName, string edgeName) :
+            Union(new UnionNode(out_crd, out_refs, i, printEdgeName, edgeName, nodeID)) {
     }
 
     template <> bool isa<Union>(SamIR s) {
@@ -153,8 +162,16 @@ namespace sam {
     Broadcast::Broadcast(const BroadcastNode *n) : SamIR(n) {
     }
 
-    Broadcast::Broadcast(std::vector<SamIR> outputs, SamEdgeType type, int nodeID) :
-    Broadcast(new BroadcastNode(outputs, type, nodeID)){
+    Broadcast::Broadcast(std::vector<SamIR> outputs, SamEdgeType type, int nodeID, bool printEdgeName) :
+            Broadcast(new BroadcastNode(outputs, type, printEdgeName,
+                                        nodeID)){
+
+    }
+
+    Broadcast::Broadcast(std::vector<SamIR> outputs, SamEdgeType type, int nodeID,
+                         std::map<SamIR, std::string> edgeName) :
+    Broadcast(new BroadcastNode(outputs, type, true, edgeName,
+                                nodeID)){
 
     }
 
@@ -227,7 +244,7 @@ namespace sam {
     }
 
     template <> bool isa<Reduce>(SamIR s) {
-        return isa<ReduceNode>(s.ptr);
+       return isa<ReduceNode>(s.ptr);
     }
 
     template <> Reduce to<Reduce>(SamIR s) {
@@ -239,8 +256,8 @@ namespace sam {
     SparseAccumulator::SparseAccumulator(const SparseAccumulatorNode *n) : SamIR(n){
     }
 
-    SparseAccumulator::SparseAccumulator(SamIR out_val, int order, int nodeID) :
-            SparseAccumulator(new SparseAccumulatorNode(out_val, order, nodeID)) {
+    SparseAccumulator::SparseAccumulator(SamIR out_val, map<int, SamIR> out_crds, int order, int nodeID) :
+            SparseAccumulator(new SparseAccumulatorNode(out_val, out_crds, order, nodeID)) {
     }
 
     template <> bool isa<SparseAccumulator>(SamIR s) {
