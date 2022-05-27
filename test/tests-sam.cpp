@@ -105,24 +105,27 @@ const Format DSSS({Dense, Sparse, Sparse, Sparse}, {0,1,2,3});
 const Format SSS({Sparse, Sparse, Sparse}, {0,1,2});
 const Format DSS({Dense, Sparse, Sparse}, {0,1,2});
 
+vector<std::string> tensors3 = {"enron.tns", "facebook.tns", "amazon.tns", "nell-1.tns", "nell-2.tns", "patents.tns", "reddit.tns"};
 
-TEST(sam, pack) {
-    std::string format = "sss";
-    std::string tnsPath = "enron-small.tns";
-    std::string frosttTensorPath = std::getenv("FROSTT_PATH");
-    frosttTensorPath += tnsPath;
+TEST(sam, pack_sss) {
+    std::string frosttPath = std::getenv("FROSTT_PATH");
+    std::string frosttFormatPath = std::getenv("FROST_FORMAT_TACO_PATH")
+    for (auto tnsPath : tensors3) {
+        std::string frosttTensorPath = frosttPath + tnsPath;
 
-    auto pathSplit = taco::util::split(tnsPath, "/");
-    auto filename = pathSplit[pathSplit.size() - 1];
-    auto tensorName = taco::util::split(filename, ".")[0];
+        auto pathSplit = taco::util::split(tnsPath, "/");
+        auto filename = pathSplit[pathSplit.size() - 1];
+        auto tensorName = taco::util::split(filename, ".")[0];
 
-    // TODO (rohany): What format do we want to do here?
-    Tensor<int64_t> frosttTensor, other;
-    std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, DSSS);
+        Tensor<int64_t> frosttTensor, other;
+        std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SSS);
 
-    ofstream myfile;
-    myfile.open ("A.txt");
-    myfile << frosttTensor << endl;
-    myfile.close();
+        ofstream myfile;
+        std::string outpath = frosttFormatPath
+        outpath += tensorName + ".txt"
+        myfile.open (outpath);
+        myfile << frosttTensor << endl;
+        myfile.close();
+    }
 }
 
