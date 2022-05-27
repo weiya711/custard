@@ -109,8 +109,8 @@ vector<std::string> tensors3 = {"enron.tns", "facebook.tns", "amazon.tns", "nell
 
 TEST(sam, pack_sss) {
     std::string frosttPath = std::getenv("FROSTT_PATH");
-    std::string frosttFormatPath = std::getenv("FROST_FORMAT_TACO_PATH")
-    for (auto tnsPath : tensors3) {
+    std::string frosttFormatPath = std::getenv("FROST_FORMAT_TACO_PATH");
+    for (auto& tnsPath : tensors3) {
         std::string frosttTensorPath = frosttPath + tnsPath;
 
         auto pathSplit = taco::util::split(tnsPath, "/");
@@ -121,8 +121,8 @@ TEST(sam, pack_sss) {
         std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SSS);
 
         ofstream myfile;
-        std::string outpath = frosttFormatPath
-        outpath += tensorName + ".txt"
+        std::string outpath = frosttFormatPath;
+        outpath += tensorName + ".txt";
         myfile.open (outpath);
         myfile << frosttTensor << endl;
         myfile.close();
