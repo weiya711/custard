@@ -105,27 +105,41 @@ const Format DSSS({Dense, Sparse, Sparse, Sparse}, {0,1,2,3});
 const Format SSS({Sparse, Sparse, Sparse}, {0,1,2});
 const Format DSS({Dense, Sparse, Sparse}, {0,1,2});
 
-vector<std::string> tensors3 = {"enron.tns", "facebook.tns", "amazon.tns", "nell-1.tns", "nell-2.tns", "patents.tns", "reddit.tns"};
+vector<std::string> tensors3 = { "facebook.tns", "fb1k.tns", "fb10k.tns",  "nell-1.tns", "nell-2.tns"};
+// "amazon-reviews.tns", patents.tns", "reddit.tns" 
+
 
 TEST(sam, pack_sss) {
     std::string frosttPath = std::getenv("FROSTT_PATH");
-    std::string frosttFormatPath = std::getenv("FROST_FORMAT_TACO_PATH");
+    std::string frosttFormatPath = std::getenv("FROSTT_FORMATTED_TACO_PATH");
     for (auto& tnsPath : tensors3) {
-        std::string frosttTensorPath = frosttPath + tnsPath;
+        std::string frosttTensorPath = frosttPath;
+        frosttTensorPath += tnsPath;
 
         auto pathSplit = taco::util::split(tnsPath, "/");
         auto filename = pathSplit[pathSplit.size() - 1];
         auto tensorName = taco::util::split(filename, ".")[0];
+        cout << frosttTensorPath << endl;
+        cout << tensorName << "..." << endl;
 
         Tensor<int64_t> frosttTensor, other;
         std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SSS);
 
-        ofstream myfile;
-        std::string outpath = frosttFormatPath;
-        outpath += tensorName + ".txt";
-        myfile.open (outpath);
-        myfile << frosttTensor << endl;
-        myfile.close();
+        ofstream origfile;
+        std::string outpath = frosttFormatPath + "/sss/";
+        std::string origpath = outpath + tensorName + ".txt";
+        cout << origpath << endl;
+        origfile.open (origpath);
+        origfile << frosttTensor << endl;
+        origfile.close();
+
+        ofstream shiftfile;
+        std::string shiftpath = outpath + tensorName + "_shift.txt";
+        cout << shiftpath << endl;
+        shiftfile.open (shiftpath);
+        shiftfile << other << endl;
+        shiftfile.close();
+
     }
 }
 
