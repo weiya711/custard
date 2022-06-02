@@ -588,7 +588,8 @@ namespace taco {
                 adjacentContractionLevel = true;
                 prevContractionVar = indexVar;
             } else if (std::count(resultVars.begin(), resultVars.end(), indexVar) > 0 and
-                        contains(contractions, indexVar) and contractions.at(indexVar).size() > 1) {
+                        contains(contractions, indexVar) and contractions.at(indexVar).size() > 1
+                        and isIntersection) {
                 adjacentContractionLevel = true;
                 prevContractionVar = indexVar;
             } else {
