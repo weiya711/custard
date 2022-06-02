@@ -675,7 +675,7 @@ namespace taco {
               }),
               function<void(const taco::AddNode*,Matcher*)>([&](
                       const taco::AddNode* op, Matcher* ctx) {
-                  auto add = taco::sam::Mul(computeBlock, id);
+                  auto add = taco::sam::Add(computeBlock, id);
                   id++;
                   computeBlock = add;
                   ctx->match(op->a);
