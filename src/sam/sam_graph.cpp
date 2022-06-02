@@ -571,9 +571,12 @@ namespace taco {
         for (int count = 0; count < (int) getOrderedIndexVars().size(); count++) {
             IndexVar indexVar = getOrderedIndexVars().at(count);
 
+            bool isIntersection = contains(contractionType, contractions.at(indexVar)) &&
+                                  contractionType.at(contractions.at(indexVar));
             // FIXME: See if the result var needing to be there is necessary... Think about X(i) = B(i,j)*C(i,j)
             if (std::count(resultVars.begin(), resultVars.end(), indexVar) > 0 and
-                contains(contractions, indexVar) and contractions.at(indexVar).size() > 1 and adjacentContractionLevel) {
+                contains(contractions, indexVar) and contractions.at(indexVar).size() > 1 and
+                isIntersection and adjacentContractionLevel) {
 
                 auto node = CrdDrop(inputIterationCrdDst[prevContractionVar], inputIterationCrdDst[indexVar],
                                     prevContractionVar, indexVar, id);
