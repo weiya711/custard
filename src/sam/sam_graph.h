@@ -22,6 +22,51 @@ namespace taco {
 
     class TensorPath;
 
+    struct SAMGraphComputeNode {
+        sam::SamNodeType nodeType;
+        TensorVar tensor;
+        int id;
+        SAMGraphComputeNode *op1 = nullptr;
+        SAMGraphComputeNode *op2 = nullptr;
+        SAMGraphComputeNode *parent = nullptr;
+    };
+
+    void printSAMComputeNode (SAMGraphComputeNode node)
+    {
+        std::cout << node.id << ": ";
+        switch (node.nodeType) {
+            case sam::SamNodeType::Mul:
+                std::cout << "type = Mul";
+                break;
+            case sam::SamNodeType::Add:
+                std::cout << "type = Add";
+                break;
+            case sam::SamNodeType::Reduce:
+                std::cout << "type = Reduce";
+                break;
+            case sam::SamNodeType::SparseAccumulator:
+                std::cout << "type = SparseAccumulator";
+                break;
+            case sam::SamNodeType::Array:
+                std::cout <<  node.tensor.getName();
+                break;
+            default:
+                std::cout << "none";
+                break;
+        }
+        std::cout << std::endl;
+        if (node.op1 != nullptr) {
+            std::cout << "child1: ";
+            printSAMComputeNode(*node.op1);
+        }
+        if (node.op2 != nullptr)
+        {
+            std::cout << "child2: ";
+            printSAMComputeNode(*node.op2);
+        }
+
+    }
+
 /// An SAM graph consists of
     class SAMGraph {
     public:
