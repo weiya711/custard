@@ -669,7 +669,7 @@ namespace taco {
                   // check if array is scalar
                   bool isScalar = tensor.getFormat().getOrder() == 0;
                   auto array = taco::sam::Array(computeBlock, tensor, id,
-                                                false, isScalar);
+                                                false, isScalar && getOrderedIndexVars().size() == 0);
                   id++;
                   inputValsArrays[tensor] = array;
               }),
@@ -859,6 +859,7 @@ namespace taco {
                     contractOuts = nodeMap[prevIndexVar];
                 } else {
                     for (const auto& arrs: inputValsArrays) {
+
                         contractOuts.push_back(arrs.second);
                     }
                 }
