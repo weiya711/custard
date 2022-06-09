@@ -400,8 +400,9 @@ struct ReduceNode : public ComputeNode {
 struct SparseAccumulatorNode : public SAMNode {
     SparseAccumulatorNode() : SAMNode() {}
 
-    SparseAccumulatorNode(const SamIR& out_val, const std::map<int, SamIR> out_crds, int order, int nodeID) :
-    SAMNode(), out_val(out_val), out_crds(out_crds), order(order), nodeID(nodeID) {}
+    SparseAccumulatorNode(const SamIR& out_val, const std::map<int, SamIR> out_crds, int order,
+                          std::map<int, IndexVar> ivarMap, int nodeID) :
+    SAMNode(), out_val(out_val), out_crds(out_crds), order(order), ivarMap(ivarMap), nodeID(nodeID) {}
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
@@ -418,6 +419,7 @@ struct SparseAccumulatorNode : public SAMNode {
 
     // Metadata
     int order = 0;
+    std::map<int, IndexVar> ivarMap;
 
     int nodeID = 0;
     static const SamNodeType _type_info = SamNodeType::SparseAccumulator;
@@ -427,6 +429,32 @@ struct CrdDropNode : public SAMNode {
     CrdDropNode() : SAMNode() {}
 
     CrdDropNode(const SamIR& out_outer_crd, const SamIR& out_inner_crd,
+                const IndexVar& outer, const IndexVar& inner, int nodeID) :
+            SAMNode(), out_outer_crd(out_outer_crd), out_inner_crd(out_inner_crd),
+            outer(outer), inner(inner), nodeID(nodeID) {}
+
+    void accept(SAMVisitorStrict* v) const override {
+        v->visit(this);
+    }
+
+    std::string getName() const override;
+
+    SamIR out_outer_crd;
+    SamIR out_inner_crd;
+
+    // Metadata
+    IndexVar outer;
+    IndexVar inner;
+
+    int nodeID = 0;
+
+    static const SamNodeType _type_info = SamNodeType::CrdDrop;
+};
+
+struct CrdHoldNode : public SAMNode {
+    CrdHoldNode() : SAMNode() {}
+
+    CrdHoldNode(const SamIR& out_outer_crd, const SamIR& out_inner_crd,
                 const IndexVar& outer, const IndexVar& inner, int nodeID) :
             SAMNode(), out_outer_crd(out_outer_crd), out_inner_crd(out_inner_crd),
             outer(outer), inner(inner), nodeID(nodeID) {}

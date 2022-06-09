@@ -22,6 +22,7 @@ namespace sam {
     struct SparseAccumulatorNode;
     struct BroadcastNode;
     struct CrdDropNode;
+    struct CrdHoldNode;
 
     class SAMVisitorStrict {
     public:
@@ -50,6 +51,7 @@ namespace sam {
         virtual void visit(const SparseAccumulatorNode *) = 0;
 
         virtual void visit(const CrdDropNode *) = 0;
+        virtual void visit(const CrdHoldNode *) = 0;
     };
 
 /// Visit nodes in an expression.
@@ -82,6 +84,7 @@ namespace sam {
         virtual void visit(const SparseAccumulatorNode *);
 
         virtual void visit(const CrdDropNode *);
+        virtual void visit(const CrdHoldNode *);
     };
 
 // TODO: Create matcher class for SAM Visitors

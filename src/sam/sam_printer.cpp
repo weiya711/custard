@@ -36,6 +36,16 @@ namespace sam {
             op->out_inner_crd.accept(this);
     }
 
+    void SAMPrinter::visit(const CrdHoldNode *op) {
+        os << op->getName();
+        os << "->" << endl;
+
+        if (op->out_outer_crd.defined())
+            op->out_outer_crd.accept(this);
+        if (op->out_inner_crd.defined())
+            op->out_inner_crd.accept(this);
+    }
+
     void SAMPrinter::print(const SamIR &sam) {
         sam.accept(this);
     }
@@ -334,17 +344,28 @@ namespace sam {
     void SAMDotNodePrinter::visit(const SparseAccumulatorNode *op) {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             std::stringstream comment;
-            comment << "\"type=" << op->getNodeName() <<",order=" << op->order << "\"";
+            comment << "\"type=" << op->getNodeName() <<",order=" << op->order;
+            for (auto ivar : op->ivarMap) {
+                comment << ",in" << to_string(ivar.first) << "=" << ivar.second.getName();
+            }
+            comment << "\"";
 
             os << tab;
             os << to_string(op->nodeID) << " [comment=" << comment.str();
             if (prettyPrint) {
-                os << " label=\"" << op->getName() << "\"";
+                os << " label=\"" << op->getName() << "\n";
+                for (auto ivar : op->ivarMap) {
+                    os << to_string(ivar.first) << "=" << ivar.second.getName() << " ";
+                }
+                os << "\"";
                 os << " color=brown shape=box style=filled";
             }
             if (printAttributes) {
                 os << " type=\"" << op->getNodeName() << "\"" <<
                       " order=\"" << op->order << "\"";
+                for (auto ivar : op->ivarMap) {
+                    os << " in" << to_string(ivar.first) << "=\"" << ivar.second.getName() << "\"";
+                }
             }
             os << "]" << endl;
 
@@ -375,6 +396,36 @@ namespace sam {
                 os <<   " type=\"" << "crddrop" << "\"" <<
                         " outer=\"" << op->outer.getName() << "\"" <<
                         " inner=\"" << op->inner.getName() << "\"";
+
+            }
+            os << "]" << endl;
+
+            if (op->out_outer_crd.defined()) {
+                op->out_outer_crd.accept(this);
+            }
+
+            if (op->out_inner_crd.defined()) {
+                op->out_inner_crd.accept(this);
+            }
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
+    void SAMDotNodePrinter::visit(const CrdHoldNode *op) {
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            std::stringstream comment;
+            comment << "\"type=crdhold,outer=" << op->outer << ",inner=" << op->inner << "\"";
+
+            os << tab;
+            os << to_string(op->nodeID) << " [comment=" << comment.str();
+            if (prettyPrint) {
+                os << " label=\"" << op->getName() << "\nouter="<< op->outer << ",inner=" << op->inner << "\"";
+                os << " color=orange shape=box style=filled";
+            }
+            if (printAttributes) {
+                os <<   " type=\"" << "crdhold" << "\"" <<
+                   " outer=\"" << op->outer.getName() << "\"" <<
+                   " inner=\"" << op->inner.getName() << "\"";
 
             }
             os << "]" << endl;
@@ -590,7 +641,7 @@ namespace sam {
 
             for (auto out_crd: op->out_crds) {
                 printComment = true;
-                comment = "out-" + to_string(out_crd.first);
+                comment = "out-" + op->ivarMap.at(out_crd.first).getName();
                 edgeType = "crd";
                 os << tab << op->nodeID << " -> ";
                 out_crd.second.accept(this);
@@ -603,6 +654,32 @@ namespace sam {
     }
 
     void SAMDotEdgePrinter::visit(const CrdDropNode *op) {
+        string ss = printerHelper();
+        os << op->nodeID << ss << endl;
+
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            if (op->out_outer_crd.defined()) {
+                edgeType = "crd";
+                printComment = true;
+                comment = "outer-"+op->outer.getName();
+                os << tab << op->nodeID << " -> ";
+                op->out_outer_crd.accept(this);
+            }
+
+            if (op->out_inner_crd.defined()) {
+                edgeType = "crd";
+                printComment = true;
+                comment = "inner-"+op->inner.getName();
+                os << tab << op->nodeID << " -> ";
+                op->out_inner_crd.accept(this);
+            }
+
+            edgeType = "";
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
+    void SAMDotEdgePrinter::visit(const CrdHoldNode *op) {
         string ss = printerHelper();
         os << op->nodeID << ss << endl;
 

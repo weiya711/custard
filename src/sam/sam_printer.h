@@ -45,6 +45,7 @@ namespace sam {
 //        void visit(const SparseAccumulatorNode *);
 
         void visit(const CrdDropNode *);
+        void visit(const CrdHoldNode *);
 
     private:
         std::ostream &os;
@@ -79,6 +80,8 @@ namespace sam {
         void visit(const SparseAccumulatorNode *) override;
 
         void visit(const CrdDropNode *) override;
+
+        void visit(const CrdHoldNode *) override;
 
         void setPrintAttributes(bool printAttributes);
     private:
@@ -121,6 +124,8 @@ namespace sam {
         void visit(const CrdDropNode *) override;
 
         void visit(const SparseAccumulatorNode *) override;
+
+        void visit(const CrdHoldNode *) override;
 
         void setPrintAttributes(bool printAttributes);
     private:
