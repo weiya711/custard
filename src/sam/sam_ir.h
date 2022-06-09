@@ -26,6 +26,7 @@ namespace sam {
     struct MulNode;
     struct ReduceNode;
     struct SparseAccumulatorNode;
+    struct CrdHoldNode;
 
     class SamIR;
     class SAMVisitorStrict;
@@ -220,7 +221,8 @@ namespace sam {
 
         explicit SparseAccumulator(const SparseAccumulatorNode *);
 
-        SparseAccumulator(SamIR out_val, std::map<int, SamIR> out_crds, int order, int nodeID);
+        SparseAccumulator(SamIR out_val, std::map<int, SamIR> out_crds, int order, std::map<int, IndexVar> ivarMap,
+                          int nodeID);
 
         typedef SparseAccumulatorNode Node;
 
@@ -235,6 +237,18 @@ namespace sam {
         CrdDrop(SamIR out_outer_crd, SamIR out_inner_crd, IndexVar outer, IndexVar inner, int nodeID);
 
         typedef CrdDropNode Node;
+
+    };
+
+    class CrdHold : public SamIR {
+    public:
+        CrdHold() = default;
+
+        explicit CrdHold(const CrdHoldNode *);
+
+        CrdHold(SamIR out_outer_crd, SamIR out_inner_crd, IndexVar outer, IndexVar inner, int nodeID);
+
+        typedef CrdHoldNode Node;
 
     };
 }

@@ -608,6 +608,9 @@ namespace taco {
         map<IndexVar, SamIR> inputIterationCrdDst(resultWriteIRNodes);
         SamIR reduceNode = SamIR();
         auto prevComputeNode = resultWriteVals;
+        int spaccInputCnt = 0;
+        int outermostSpAccVar = 0;
+        map<int, IndexVar> spAccIndexvarMap;
         if (!reduction.empty()) {
             map<int, SamIR> spAccCrds;
             for (auto it =  reduction.rbegin(); it != reduction.rend(); it++) {
@@ -624,21 +627,26 @@ namespace taco {
                         taco_iassert(!reductionOrder.empty()) << "Number of reduction (Sparse Accumulation) nodes does not "
                                                                  "match the number of reduction orders.";
 
-                        for (int i = 0; i <= reductionOrder.back(); i++) {
-                            auto indexvar = getOrderedIndexVars().at(getOrderedIndexVars().size() - 1 - i);
+                        for (int i = (int) getOrderedIndexVars().size(); i > 0; i--) {
+                            auto indexvar = getOrderedIndexVars().at(i - 1);
                             if (contains(resultWriteIRNodes, indexvar)) {
-                                spAccCrds[i] = resultWriteIRNodes[indexvar];
+                                spAccCrds[spaccInputCnt] = resultWriteIRNodes[indexvar];
+                                spAccIndexvarMap[spaccInputCnt] = indexvar;
+                                spaccInputCnt++;
+                                outermostSpAccVar = i - 1;
                             }
                         }
 
-                        reduceNode = taco::sam::SparseAccumulator(prevComputeNode,
-                                                                   spAccCrds, reductionOrder.back(), id);
+                        reduceNode = taco::sam::SparseAccumulator(prevComputeNode,spAccCrds, reductionOrder.back(),
+                                                                  spAccIndexvarMap, id);
 
-                        for (int i = 0; i <= reductionOrder.back(); i++) {
+                        for (int i = (int) getOrderedIndexVars().size(); i > 0; i--) {
                             // FIXME: check if this is always correct for more complicated kernels
-                            auto indexvar = getOrderedIndexVars().at(getOrderedIndexVars().size() - 1 - i);
-                            inputIterationCrdDst[indexvar] = reduceNode;
-                            resultHasSource[indexvar] = true;
+                            auto indexvar = getOrderedIndexVars().at(i - 1);
+                            if (contains(resultWriteIRNodes, indexvar)) {
+                                inputIterationCrdDst[indexvar] = reduceNode;
+                                resultHasSource[indexvar] = true;
+                            }
                         }
                         reductionOrder.pop_back();
                         break;
@@ -647,6 +655,43 @@ namespace taco {
                 }
                 prevComputeNode = reduceNode;
                 id++;
+            }
+        }
+
+        // Add in CrdHolds if sparse accumulation exists
+        if (std::count(reduction.begin(), reduction.end(), SamNodeType::SparseAccumulator)) {
+            for (int count = numIndexVars - 1; count >= 0; count--) {
+                IndexVar indexvar = getOrderedIndexVars().at(count);
+                int distance = count - outermostSpAccVar;
+
+                if (contains(resultWriteIRNodes, indexvar) && indexvar != getOrderedIndexVars().at(outermostSpAccVar)) {
+                    for (int i = 0; i < distance; i++) {
+                        auto crdDest = contains(resultHasSource, indexvar) && resultHasSource.at(indexvar) ?
+                                       inputIterationCrdDst.at(indexvar) : SamIR();
+
+                        auto outerIndexVar = getOrderedIndexVars().at(outermostSpAccVar);
+                        auto innerIndexVar = getOrderedIndexVars().at(outermostSpAccVar + distance - i);
+                        if (i == 0) {
+                            auto crdhold = CrdHold(crdDest, crdDest,
+                                                   outerIndexVar, innerIndexVar, id);
+                            id++;
+                            inputIterationCrdDst[outerIndexVar] = crdhold;
+                            inputIterationCrdDst[innerIndexVar] = crdhold;
+                        } else {
+                            auto crdhold = CrdHold(crdDest, SamIR(),
+                                                   outerIndexVar,
+                                                   innerIndexVar, id);
+                            id++;
+                            inputIterationCrdDst[outerIndexVar] = crdhold;
+                            inputIterationCrdDst[innerIndexVar] = crdhold;
+                        }
+                        resultHasSource[outerIndexVar] = true;
+                        resultHasSource[innerIndexVar] = true;
+                    }
+
+                } else if (contains(resultWriteIRNodes, indexvar)) {
+                    distance = 0;
+                }
             }
         }
 
@@ -783,10 +828,11 @@ namespace taco {
         }
 
         // Input Iteration
+        int spaccCount = 0;
         map<IndexVar, vector<SamIR>> nodeMap;
         for (int count = 0; count < numIndexVars; count++) {
-
             IndexVar indexvar = getOrderedIndexVars().at(numIndexVars - 1 - count);
+
             bool isRoot = count == numIndexVars - 1;
             IndexVar prevIndexVar = count == 0 ? nullptr : getOrderedIndexVars().at(numIndexVars - count);
 
@@ -794,7 +840,7 @@ namespace taco {
                            inputIterationCrdDst.at(indexvar) : SamIR();
 
             bool hasContraction = contractions.at(indexvar).size() > 1;
-            bool hasSparseAccumulation = isa<SparseAccumulator>(crdDest);
+            bool hasSparseAccumulation = isa<SparseAccumulator>(crdDest) || isa<CrdHold>(crdDest);
 
             // FIXME: This will eventually need to be the iteration algebra for fused kernels
             bool isIntersection = contains(contractionType, contractions.at(indexvar)) &&
@@ -840,7 +886,7 @@ namespace taco {
             if(repeatSigGenNode.defined() && crdDest.defined()) {
                 map<SamIR, string> edgeName;
                 if (hasSparseAccumulation) {
-                    edgeName[crdDest] = "in-" + to_string(count) + "-" + indexvar.getName() ;
+                    edgeName[crdDest] = indexvar.getName() ;
                     crdDest = Broadcast({crdDest, repeatSigGenNode}, sam::SamEdgeType::crd, id, edgeName);
                 } else {
                     crdDest = Broadcast({crdDest, repeatSigGenNode}, sam::SamEdgeType::crd, id);
@@ -867,7 +913,7 @@ namespace taco {
                 bool isCrdDrop = isa<CrdDrop>(crdDest);
                 bool printEdgeName = isCrdDrop || (!isCrdDrop && hasSparseAccumulation);
                 auto edgeName = isCrdDrop ? "in-" + indexvar.getName() : hasSparseAccumulation ?
-                        "in-" + to_string(count) + "-" + indexvar.getName() : "";
+                        indexvar.getName() : "";
                 if (isIntersection)
                     contractNode = taco::sam::Intersect(crdDest, contractOuts, indexvar, id,
                                                         printEdgeName, edgeName);
@@ -894,7 +940,7 @@ namespace taco {
                         edgeName[contractNode] = "in-" + tensorVar.getName();
                     }
                     else if (hasSparseAccumulation && ! isa<Broadcast>(crdDest)) {
-                        edgeName[crdDest] = "in-" + to_string(numIndexVars - 1 - count) + "-" + indexvar.getName();
+                        edgeName[crdDest] = indexvar.getName();
                     }
                     bool printEdgeName = hasContraction || (!hasContraction && hasSparseAccumulation);
                     if (count == 0) {
@@ -915,6 +961,10 @@ namespace taco {
                 }
             }
             nodeMap[indexvar] = nodes;
+
+            if (this->isReduction(indexvar)) {
+                spaccCount++;
+            }
         }
 
         vector<TensorVar> tensors;

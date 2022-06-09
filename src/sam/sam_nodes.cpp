@@ -96,13 +96,19 @@ namespace sam {
 
     std::string SparseAccumulatorNode::getName() const {
         stringstream ss;
-        ss << "SparseAccumulator " << to_string(order);
+        ss << "SparseAccumulator " << to_string(order) << " ";
         return ss.str();
     }
 
     std::string CrdDropNode::getName() const {
         stringstream ss;
         ss << "CrdDrop " << outer.getName() << "," << inner.getName();
+        return ss.str();
+    }
+
+    std::string CrdHoldNode::getName() const {
+        stringstream ss;
+        ss << "CrdHold " << outer.getName() << "," << inner.getName();
         return ss.str();
     }
 }

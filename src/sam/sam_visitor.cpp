@@ -115,5 +115,14 @@ namespace sam {
             op->out_inner_crd.accept(this);
 
     }
+
+    void SAMVisitor::visit(const CrdHoldNode *op) {
+        if (op->out_outer_crd.defined())
+            op->out_outer_crd.accept(this);
+
+        if (op->out_inner_crd.defined())
+            op->out_inner_crd.accept(this);
+
+    }
 }
 }

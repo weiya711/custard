@@ -256,8 +256,9 @@ namespace sam {
     SparseAccumulator::SparseAccumulator(const SparseAccumulatorNode *n) : SamIR(n){
     }
 
-    SparseAccumulator::SparseAccumulator(SamIR out_val, map<int, SamIR> out_crds, int order, int nodeID) :
-            SparseAccumulator(new SparseAccumulatorNode(out_val, out_crds, order, nodeID)) {
+    SparseAccumulator::SparseAccumulator(SamIR out_val, map<int, SamIR> out_crds, int order,
+                                         std::map<int, IndexVar> ivarMap, int nodeID) :
+            SparseAccumulator(new SparseAccumulatorNode(out_val, out_crds, order, ivarMap, nodeID)) {
     }
 
     template <> bool isa<SparseAccumulator>(SamIR s) {
@@ -284,6 +285,23 @@ namespace sam {
     template <> CrdDrop to<CrdDrop>(SamIR s) {
         taco_iassert(isa<CrdDrop>(s));
         return CrdDrop(to<CrdDropNode>(s.ptr));
+    }
+
+    // Crd Hold
+    CrdHold::CrdHold(const CrdHoldNode *n) : SamIR(n){
+    }
+
+    CrdHold::CrdHold(SamIR out_outer_crd, SamIR out_inner_crd, IndexVar outer, IndexVar inner, int nodeID) :
+            CrdHold(new CrdHoldNode(out_outer_crd, out_inner_crd, outer, inner, nodeID)) {
+    }
+
+    template <> bool isa<CrdHold>(SamIR s) {
+        return isa<CrdHoldNode>(s.ptr);
+    }
+
+    template <> CrdHold to<CrdHold>(SamIR s) {
+        taco_iassert(isa<CrdHold>(s));
+        return CrdHold(to<CrdHoldNode>(s.ptr));
     }
 }
 }
