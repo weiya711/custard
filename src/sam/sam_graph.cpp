@@ -470,123 +470,6 @@ namespace taco {
 
         }
 
-//        // Elementwise Compute Operations
-//        vector<SAMGraphComputeNode> computeNodes;
-//        vector<SAMGraphComputeNode> computeLeafNodes;
-//        vector<SamNodeType> compute;
-//        SAMGraphComputeNode* parent = nullptr;
-//        auto nodeId = 0;
-//        match(content->expr,
-//              function<void(const taco::MulNode*,Matcher*)>([&](
-//                      const taco::MulNode* op, Matcher* ctx) {
-//                  cout << IndexExpr(op) << endl;
-//                  SAMGraphComputeNode* mulnode = new SAMGraphComputeNode;
-//                  mulnode->nodeType = SamNodeType::Mul;
-//                  mulnode->id = nodeId;
-//                  nodeId++;
-//                  cout << mulnode->id;
-//                  cout << "addr: " << &mulnode << endl;
-//                  cout << endl;
-//                  mulnode->parent = parent;
-//                  parent = mulnode;
-//                  cout <<  " parent id a " << parent->id << " " << endl;
-//                  ctx->match(op->a);
-//                  mulnode->op1 = parent;
-//                  cout << "op1: " << mulnode->op1 << endl;
-//                  cout <<  " parent id " << parent->id << " " << endl;
-//                  parent = mulnode;
-//                  cout <<  " parent id b " << parent->id << " " << endl;
-//                  ctx->match(op->b);
-//                  cout <<  " parent id " << parent->id << " " << endl;
-//                  mulnode->op2 = parent;
-//                  cout << "op2: " << mulnode->op2 << endl;
-//                  computeNodes.push_back(*mulnode);
-//                  compute.push_back(SamNodeType::Mul);
-//                  cout << "op1: " << mulnode->op1 << endl;
-//                  cout << "op2: " << mulnode->op2 << endl;
-//                  parent = mulnode;
-//              }),
-//              function<void(const taco::AccessNode*,Matcher*)>([&](
-//                      const taco::AccessNode* op, Matcher* ctx) {
-//                  cout << IndexExpr(op) << endl;
-//                  SAMGraphComputeNode* arrnode = new SAMGraphComputeNode;
-//                  arrnode->nodeType = SamNodeType::Array;
-//                  arrnode->tensor = op->tensorVar;
-//                  arrnode->id = nodeId;
-//                  nodeId++;
-//                  cout << arrnode->id;
-//                  cout << "addr: " << &arrnode << endl;
-//                  cout << endl;
-//
-//                  arrnode->parent = parent;
-//                  computeLeafNodes.push_back(*arrnode);
-//                  computeNodes.push_back(*arrnode);
-//                  parent = arrnode;
-//              }),
-//              function<void(const taco::AddNode*,Matcher*)>([&](
-//                      const taco::AddNode* op, Matcher* ctx) {
-//                  SAMGraphComputeNode node{};
-//                  node.nodeType = SamNodeType::Add;
-//                  node.id = nodeId;
-//                  cout << "id" <<  node.id << ", ";
-//                  nodeId++;
-//                  node.parent = parent;
-//                  parent = &node;
-//                  ctx->match(op->a);
-//                  node.op1 = parent;
-//                  parent = &node;
-//                  ctx->match(op->b);
-//                  node.op2 = parent;
-//                  computeNodes.push_back(node);
-//                  compute.push_back(SamNodeType::Add);
-//                  parent = &node;
-//              }));
-//
-//        cout << "DEBUG COMPUTE" << endl;
-//        printSAMComputeNode(*parent);
-//        cout << endl;
-//        for (auto& node : computeNodes) {
-//            printSAMComputeNode(node);
-//        }
-
-//        parent = &computeNodes.back();
-//        // Reduction Operations
-//        auto isInnerReduction = true;
-//        vector<int> reductionOrder;
-//        for (int count = 0; count < numIndexVars; count++) {
-//            IndexVar indexvar = getOrderedIndexVars().at(numIndexVars - 1 - count);
-//            if (isReduction(indexvar) && isInnerReduction) {
-//                SAMGraphComputeNode* node = new SAMGraphComputeNode;
-//                node->nodeType = SamNodeType::Reduce;
-//                node->parent = parent;
-//                node->id = nodeId;
-//                nodeId++;
-//                node->op2 = nullptr;
-//                parent = node;
-//                parent->op1 = node;
-//                computeNodes.push_back(*node);
-//                compute.push_back(SamNodeType::Reduce);
-//                reductionOrder.push_back(count);
-//                parent = node;
-//            } else if (isReduction(indexvar) && !isInnerReduction) {
-//                SAMGraphComputeNode* node = new SAMGraphComputeNode;
-//                node->nodeType = SamNodeType::SparseAccumulator;
-//                node->parent = parent;
-//                node->id = nodeId;
-//                nodeId++;
-//                parent->op1 = node;
-//                parent = node;
-//                computeNodes.push_back(*node);
-//                compute.push_back(SamNodeType::SparseAccumulator);
-//                reductionOrder.push_back(count);
-//                parent = node;
-//                isInnerReduction = false;
-//            } else {
-//                isInnerReduction = false;
-//            }
-//        }
-
-
         // Reduction Operations
         vector<SamNodeType> reduction;
         auto isInnerReduction = true;
@@ -609,7 +492,8 @@ namespace taco {
         SamIR reduceNode = SamIR();
         auto prevComputeNode = resultWriteVals;
         int spaccInputCnt = 0;
-        int outermostSpAccVar = 0;
+        int outermostSpAccVar;
+        int innermostSpAccVar = -1;
         map<int, IndexVar> spAccIndexvarMap;
         if (!reduction.empty()) {
             map<int, SamIR> spAccCrds;
@@ -634,6 +518,7 @@ namespace taco {
                                 spAccIndexvarMap[spaccInputCnt] = indexvar;
                                 spaccInputCnt++;
                                 outermostSpAccVar = i - 1;
+                                innermostSpAccVar = innermostSpAccVar < 0 ? i-1 : innermostSpAccVar;
                             }
                         }
 
@@ -659,26 +544,29 @@ namespace taco {
         }
 
         // Add in CrdHolds if sparse accumulation exists
+        SamIR crdhold;
         if (std::count(reduction.begin(), reduction.end(), SamNodeType::SparseAccumulator)) {
-            for (int count = numIndexVars - 1; count >= 0; count--) {
+            for (int count = innermostSpAccVar - 1; count >= outermostSpAccVar; count--) {
                 IndexVar indexvar = getOrderedIndexVars().at(count);
-                int distance = count - outermostSpAccVar;
-
-                if (contains(resultWriteIRNodes, indexvar) && indexvar != getOrderedIndexVars().at(outermostSpAccVar)) {
+                int distance = innermostSpAccVar - count;
+                if (contains(resultWriteIRNodes, indexvar)) {
                     for (int i = 0; i < distance; i++) {
-                        auto crdDest = contains(resultHasSource, indexvar) && resultHasSource.at(indexvar) ?
-                                       inputIterationCrdDst.at(indexvar) : SamIR();
+                        auto outerIndexVar = indexvar;
+                        auto innerIndexVar = getOrderedIndexVars().at(count + distance - i);
 
-                        auto outerIndexVar = getOrderedIndexVars().at(outermostSpAccVar);
-                        auto innerIndexVar = getOrderedIndexVars().at(outermostSpAccVar + distance - i);
+                        auto crdDestOuter = contains(resultHasSource, outerIndexVar) && resultHasSource.at(outerIndexVar) ?
+                                       inputIterationCrdDst.at(outerIndexVar) : SamIR();
+                        auto crdDestInner = contains(resultHasSource, innerIndexVar) && resultHasSource.at(innerIndexVar) ?
+                                       inputIterationCrdDst.at(innerIndexVar) : SamIR();
+
                         if (i == 0) {
-                            auto crdhold = CrdHold(crdDest, crdDest,
+                            crdhold = CrdHold(crdDestOuter, crdDestInner,
                                                    outerIndexVar, innerIndexVar, id);
                             id++;
                             inputIterationCrdDst[outerIndexVar] = crdhold;
                             inputIterationCrdDst[innerIndexVar] = crdhold;
                         } else {
-                            auto crdhold = CrdHold(crdDest, SamIR(),
+                            crdhold = CrdHold(crdDestOuter, crdDestInner,
                                                    outerIndexVar,
                                                    innerIndexVar, id);
                             id++;
@@ -728,70 +616,6 @@ namespace taco {
                   ctx->match(op->b);
                   computeBlock = add;
               }));
-
-//        // Computation: Compute primitives
-//        map<IndexVar, SamIR> inputIterationCrdDst(resultWriteIRNodes);
-//        SamIR computeNode = SamIR();
-//        if (!compute.empty()) {
-//            auto prevComputeNode = resultWriteVals;
-//            map<int, SamIR> spAccCrds;
-//            for (auto it =  compute.rbegin(); it != compute.rend(); it++) {
-//                auto computation = *it;
-//                switch (computation) {
-//                    case SamNodeType::Mul:
-//                        computeNode = taco::sam::Mul(prevComputeNode, id);
-//                        break;
-//                    case SamNodeType::Add:
-//                        computeNode = taco::sam::Add(prevComputeNode, id);
-//                        break;
-//                    case SamNodeType::Reduce:
-//                        computeNode = taco::sam::Reduce(prevComputeNode, id);
-//                        taco_iassert(reductionOrder.back() == 0) << "Reduce node must have a reduction order of 0";
-//                        taco_iassert(!reductionOrder.empty()) << "Number of reduction (Reduction) nodes does not "
-//                                                                 "match the number of reduction orders.";
-//                        reductionOrder.pop_back();
-//                        break;
-//                    case SamNodeType::SparseAccumulator:
-//                        taco_iassert(!reductionOrder.empty()) << "Number of reduction (Sparse Accumulation) nodes does not "
-//                                                                 "match the number of reduction orders.";
-//
-//                        for (int i = 0; i <= reductionOrder.back(); i++) {
-//                            auto indexvar = getOrderedIndexVars().at(getOrderedIndexVars().size() - 1 - i);
-//                            if (contains(resultWriteIRNodes, indexvar)) {
-//                                spAccCrds[i] = resultWriteIRNodes[indexvar];
-//                            }
-//                        }
-//
-//                        computeNode = taco::sam::SparseAccumulator(prevComputeNode,
-//                                                                   spAccCrds, reductionOrder.back(), id);
-//
-//                        for (int i = 0; i <= reductionOrder.back(); i++) {
-//                            // FIXME: check if this is always correct for more complicated kernels
-//                            auto indexvar = getOrderedIndexVars().at(getOrderedIndexVars().size() - 1 - i);
-//                            inputIterationCrdDst[indexvar] = computeNode;
-//                            resultHasSource[indexvar] = true;
-//                        }
-//                        reductionOrder.pop_back();
-//                        break;
-//                    default:
-//                        break;
-//                }
-//                prevComputeNode = computeNode;
-//                id++;
-//            }
-//        }
-//
-//        // Computation: Create input values Arrays primitives
-//        map<TensorVar, SamIR> inputValsArrays;
-//
-//        for (auto tensor : inputTensors) {
-//            // check if array is scalar
-//            bool isScalar = tensor.getFormat().getOrder() == 0;
-//            auto array = taco::sam::Array(compute.empty() ? resultWriteVals : computeNode, tensor, id,
-//                                          false, isScalar);
-//            id++;
-//            inputValsArrays[tensor] = array;
-//        }
 
         // Add in crd drop if needed
         // Map that replaces output assignments with CrdDrop blocks if necessary
