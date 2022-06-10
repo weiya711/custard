@@ -329,6 +329,7 @@ struct ComputeNode : public SAMNode {
     SamIR out_val;
 
     // Metadata
+    bool parentSub = false;
     // None
     int nodeID = 0;
 protected:
@@ -360,7 +361,7 @@ struct MulNode : public ComputeNode {
 struct AddNode : public ComputeNode {
     AddNode() : ComputeNode() {}
 
-    AddNode(const SamIR& out_val, int nodeID) : ComputeNode(out_val, nodeID) {}
+    AddNode(const SamIR& out_val, bool sub, int nodeID) : ComputeNode(out_val, nodeID), sub(sub) {}
 
     void accept(SAMVisitorStrict* v) const override {
         v->visit(this);
@@ -374,6 +375,7 @@ struct AddNode : public ComputeNode {
         return "Add";
     }
 
+    bool sub = false;
     static const SamNodeType _type_info = SamNodeType::Add;
 };
 

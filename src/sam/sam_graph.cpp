@@ -434,6 +434,18 @@ namespace taco {
                       ctx->match(op->a);
                       ctx->match(op->b);
                   }
+              }),
+              function<void(const taco::SubNode*,Matcher*)>([&](
+                      const taco::SubNode* op, Matcher* ctx) {
+                  if (isa<Access>(op->a) && isa<Access>(op->b)) {
+                      vector<TensorVar> tensors;
+                      tensors.push_back(to<Access>(op->a).getTensorVar());
+                      tensors.push_back(to<Access>(op->b).getTensorVar());
+                      contractionType[tensors] = false;
+                  } else {
+                      ctx->match(op->a);
+                      ctx->match(op->b);
+                  }
               })
         );
 
@@ -606,6 +618,16 @@ namespace taco {
                   id++;
                   inputValsArrays[tensor] = array;
               }),
+              function<void(const taco::SubNode*,Matcher*)>([&](
+                      const taco::SubNode* op, Matcher* ctx) {
+                  auto sub = taco::sam::Add(computeBlock, id, true);
+                  id++;
+                  computeBlock = sub;
+                  ctx->match(op->a);
+                  computeBlock = sub;
+                  ctx->match(op->b);
+                  computeBlock = sub;
+              }),
               function<void(const taco::AddNode*,Matcher*)>([&](
                       const taco::AddNode* op, Matcher* ctx) {
                   auto add = taco::sam::Add(computeBlock, id);
@@ -726,11 +748,22 @@ namespace taco {
             if (hasContraction) {
                 vector<SamIR> contractOuts;
                 if (prevIndexVar.defined()) {
-                    contractOuts = nodeMap[prevIndexVar];
+                    for (auto& node : nodeMap[prevIndexVar]) {
+                        auto tensors = contractions[indexvar];
+                        for (auto& tensor : tensors) {
+                            if (node.getTensorName() == tensor.getName()) {
+                                contractOuts.push_back(node);
+                            }
+                        }
+                    }
                 } else {
+                    auto tensors = contractions[indexvar];
                     for (const auto& arrs: inputValsArrays) {
-
-                        contractOuts.push_back(arrs.second);
+                        for (auto& tensor : tensors) {
+                            if (arrs.first.getName() == tensor.getName()) {
+                                contractOuts.push_back(arrs.second);
+                            }
+                        }
                     }
                 }
 
