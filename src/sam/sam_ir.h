@@ -197,7 +197,7 @@ namespace sam {
 
         explicit Add(const taco::sam::AddNode *);
 
-        Add(SamIR out_val, int nodeID);
+        Add(SamIR out_val, int nodeID, bool sub=false);
 
         typedef taco::sam::AddNode Node;
 

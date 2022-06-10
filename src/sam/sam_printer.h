@@ -76,6 +76,7 @@ namespace sam {
         void visit(const ArrayNode *);
 
         void visit(const ComputeNode *) override;
+        void visit(const AddNode *) override;
 
         void visit(const SparseAccumulatorNode *) override;
 

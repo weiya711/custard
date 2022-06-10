@@ -341,6 +341,35 @@ namespace sam {
         printedNodes.push_back(op->nodeID);
     }
 
+    void SAMDotNodePrinter::visit(const AddNode *op) {
+        if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
+            std::stringstream comment;
+            comment << "\"type=" << op->getNodeName() <<",sub=" << op->sub <<"\"";
+
+            os << tab;
+            os << to_string(op->nodeID) << " [comment=" << comment.str();
+            if (prettyPrint) {
+                os << " label=\"" << op->getName();
+                if (op->sub)
+                    os << "\nsubtract\"";
+                else
+                    os << "\"";
+                os << " color=brown shape=box style=filled";
+            }
+            if (printAttributes) {
+                os << " type=\"" << op->getNodeName() << "\"";
+                os << " sub=\"" << op->sub << "\"";
+            }
+            os << "]" << endl;
+
+            if (op->out_val.defined()) {
+                op->out_val.accept(this);
+            }
+
+        }
+        printedNodes.push_back(op->nodeID);
+    }
+
     void SAMDotNodePrinter::visit(const SparseAccumulatorNode *op) {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             std::stringstream comment;

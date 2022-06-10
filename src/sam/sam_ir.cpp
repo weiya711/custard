@@ -222,8 +222,8 @@ namespace sam {
     Add::Add(const AddNode *n) : SamIR(n){
     }
 
-    Add::Add(SamIR out_val, int nodeID) :
-            Add(new AddNode(out_val, nodeID)) {
+    Add::Add(SamIR out_val, int nodeID, bool sub) :
+            Add(new AddNode(out_val, sub, nodeID)) {
     }
 
     template <> bool isa<Add>(SamIR s) {
