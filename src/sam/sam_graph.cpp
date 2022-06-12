@@ -410,43 +410,174 @@ namespace taco {
         // Tensor Contraction, collect which type (intersect or union) it is
         // FIXME: this code assumes 2 input operands at a time
         map<vector<TensorVar>, bool> contractionType;
+        vector<Access> rhsAccess;
+        vector<Access> lhsAccess;
+        bool isRHS = false;
         match(content->expr,
               function<void(const taco::MulNode*,Matcher*)>([&](
                       const taco::MulNode* op, Matcher* ctx) {
-                  if (isa<Access>(op->a) && isa<Access>(op->b)) {
-                      vector<TensorVar> tensors;
-                      tensors.push_back(to<Access>(op->a).getTensorVar());
-                      tensors.push_back(to<Access>(op->b).getTensorVar());
-                      contractionType[tensors] = true;
-                  } else {
-                      ctx->match(op->a);
-                      ctx->match(op->b);
+                  bool parentRHS = isRHS;
+                  vector<Access> thisRHS;
+                  vector<Access> thisLHS;
+
+                  isRHS = true;
+                  ctx->match(op->a);
+                  thisRHS = rhsAccess;
+                  rhsAccess.clear();
+                  isRHS = false;
+                  ctx->match(op->b);
+                  thisLHS = lhsAccess;
+                  lhsAccess.clear();
+
+                  map<IndexVar, vector<TensorVar>> rhsVars;
+                  for (auto& access : thisRHS) {
+                      for (auto& ivar : access.getIndexVars()) {
+                          rhsVars[ivar].push_back(access.getTensorVar());
+                      }
                   }
+                  map<IndexVar, vector<TensorVar>> lhsVars;
+                  for (auto& access : thisLHS) {
+                      for (auto& ivar : access.getIndexVars()) {
+                          lhsVars[ivar].push_back(access.getTensorVar());
+                      }
+                  }
+
+                  for (auto& lhsVar: lhsVars) {
+                      for (auto& rhsVar: rhsVars) {
+                          if (lhsVar.first == rhsVar.first) {
+                              vector<TensorVar> tensors(lhsVar.second.size() + rhsVar.second.size());
+                              merge(lhsVar.second.begin(),
+                                    lhsVar.second.end(),
+                                    rhsVar.second.begin(),
+                                    rhsVar.second.end(),
+                                    tensors.begin());
+                              contractionType[tensors] = true;
+                          }
+                      }
+                  }
+
+                  if (parentRHS) {
+                      rhsAccess = thisRHS;
+                      rhsAccess.insert(rhsAccess.end(), std::make_move_iterator(thisLHS.begin()),
+                                       std::make_move_iterator(thisLHS.end()));
+                  } else {
+                      lhsAccess = thisLHS;
+                      lhsAccess.insert(lhsAccess.end(), std::make_move_iterator(thisRHS.begin()),
+                                       std::make_move_iterator(thisRHS.end()));
+                  }
+
               }),
               function<void(const taco::AddNode*,Matcher*)>([&](
                       const taco::AddNode* op, Matcher* ctx) {
-                  if (isa<Access>(op->a) && isa<Access>(op->b)) {
-                      vector<TensorVar> tensors;
-                      tensors.push_back(to<Access>(op->a).getTensorVar());
-                      tensors.push_back(to<Access>(op->b).getTensorVar());
-                      contractionType[tensors] = false;
+                  bool parentRHS = isRHS;
+                  vector<Access> thisRHS;
+                  vector<Access> thisLHS;
+
+                  isRHS = true;
+                  ctx->match(op->a);
+                  thisRHS = rhsAccess;
+                  rhsAccess.clear();
+                  isRHS = false;
+                  ctx->match(op->b);
+                  thisLHS = lhsAccess;
+                  lhsAccess.clear();
+
+                  map<IndexVar, vector<TensorVar>> rhsVars;
+                  for (auto& access : thisRHS) {
+                      for (auto& ivar : access.getIndexVars()) {
+                          rhsVars[ivar].push_back(access.getTensorVar());
+                      }
+                  }
+                  map<IndexVar, vector<TensorVar>> lhsVars;
+                  for (auto& access : thisLHS) {
+                      for (auto& ivar : access.getIndexVars()) {
+                          lhsVars[ivar].push_back(access.getTensorVar());
+                      }
+                  }
+
+                  for (auto& lhsVar: lhsVars) {
+                      for (auto& rhsVar: rhsVars) {
+                          if (lhsVar.first == rhsVar.first) {
+                              vector<TensorVar> tensors(lhsVar.second.size() + rhsVar.second.size());
+                              merge(lhsVar.second.begin(),
+                                    lhsVar.second.end(),
+                                    rhsVar.second.begin(),
+                                    rhsVar.second.end(),
+                                    tensors.begin());
+                              contractionType[tensors] = false;
+                          }
+                      }
+                  }
+
+                  if (parentRHS) {
+                      rhsAccess = thisRHS;
+                      rhsAccess.insert(rhsAccess.end(), std::make_move_iterator(thisLHS.begin()),
+                                       std::make_move_iterator(thisLHS.end()));
                   } else {
-                      ctx->match(op->a);
-                      ctx->match(op->b);
+                      lhsAccess = thisLHS;
+                      lhsAccess.insert(lhsAccess.end(), std::make_move_iterator(thisRHS.begin()),
+                                       std::make_move_iterator(thisRHS.end()));
                   }
               }),
               function<void(const taco::SubNode*,Matcher*)>([&](
                       const taco::SubNode* op, Matcher* ctx) {
-                  if (isa<Access>(op->a) && isa<Access>(op->b)) {
-                      vector<TensorVar> tensors;
-                      tensors.push_back(to<Access>(op->a).getTensorVar());
-                      tensors.push_back(to<Access>(op->b).getTensorVar());
-                      contractionType[tensors] = false;
-                  } else {
-                      ctx->match(op->a);
-                      ctx->match(op->b);
+                  bool parentRHS = isRHS;
+                  vector<Access> thisRHS;
+                  vector<Access> thisLHS;
+
+                  isRHS = true;
+                  ctx->match(op->a);
+                  thisRHS = rhsAccess;
+                  rhsAccess.clear();
+                  isRHS = false;
+                  ctx->match(op->b);
+                  thisLHS = lhsAccess;
+                  lhsAccess.clear();
+
+                  map<IndexVar, vector<TensorVar>> rhsVars;
+                  for (auto& access : thisRHS) {
+                      for (auto& ivar : access.getIndexVars()) {
+                          rhsVars[ivar].push_back(access.getTensorVar());
+                      }
                   }
-              })
+                  map<IndexVar, vector<TensorVar>> lhsVars;
+                  for (auto& access : thisLHS) {
+                      for (auto& ivar : access.getIndexVars()) {
+                          lhsVars[ivar].push_back(access.getTensorVar());
+                      }
+                  }
+
+                  for (auto& lhsVar: lhsVars) {
+                      for (auto& rhsVar: rhsVars) {
+                          if (lhsVar.first == rhsVar.first) {
+                              vector<TensorVar> tensors(lhsVar.second.size() + rhsVar.second.size());
+                              merge(lhsVar.second.begin(),
+                                    lhsVar.second.end(),
+                                    rhsVar.second.begin(),
+                                    rhsVar.second.end(),
+                                    tensors.begin());
+                              contractionType[tensors] = false;
+                          }
+                      }
+                  }
+
+                  if (parentRHS) {
+                      rhsAccess = thisRHS;
+                      rhsAccess.insert(rhsAccess.end(), std::make_move_iterator(thisLHS.begin()),
+                                       std::make_move_iterator(thisLHS.end()));
+                  } else {
+                      lhsAccess = thisLHS;
+                      lhsAccess.insert(lhsAccess.end(), std::make_move_iterator(thisRHS.begin()),
+                                       std::make_move_iterator(thisRHS.end()));
+                  }
+              }),
+            function<void(const taco::AccessNode*,Matcher*)>([&](
+                    const taco::AccessNode* op, Matcher* ctx) {
+                if (isRHS)
+                    rhsAccess.emplace_back(op);
+                else
+                    lhsAccess.emplace_back(op);
+            })
         );
 
         // Make map of index variables to a list of the tensor variables involved in the tensor contraction
@@ -645,7 +776,7 @@ namespace taco {
         IndexVar prevContractionVar = IndexVar();
         for (int count = 0; count < (int) getOrderedIndexVars().size(); count++) {
             IndexVar indexVar = getOrderedIndexVars().at(count);
-
+            
             bool isIntersection = contains(contractionType, contractions.at(indexVar)) &&
                                   contractionType.at(contractions.at(indexVar));
             // FIXME: See if the result var needing to be there is necessary... Think about X(i) = B(i,j)*C(i,j)
