@@ -275,8 +275,8 @@ static size_t unpackTensorData(const taco_tensor_t& tensorData,
       numVals *= ((int*)tensorData.indices[i][0])[0];
     } else if (modeType.getName() == Sparse.getName()) {
       auto size = ((int*)tensorData.indices[i][0])[numVals];
-      Array pos = Array(type<int>(), tensorData.indices[i][0], numVals+1, Array::UserOwns);
-      Array idx = Array(type<int>(), tensorData.indices[i][1], size, Array::UserOwns);
+      Array pos = Array(type<int>(), tensorData.indices[i][0], numVals+1, Array::Free);
+      Array idx = Array(type<int>(), tensorData.indices[i][1], size, Array::Free);
       modeIndices.push_back(ModeIndex({pos, idx}));
       numVals = size;
     } else if (modeType.getName() == Singleton.getName()) {
