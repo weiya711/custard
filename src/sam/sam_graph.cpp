@@ -817,7 +817,8 @@ namespace taco {
                            inputIterationCrdDst.at(indexvar) : SamIR();
 
             bool hasContraction = contractions.at(indexvar).size() > 1;
-            bool hasSparseAccumulation = isa<SparseAccumulator>(crdDest) || isa<CrdHold>(crdDest);
+            bool hasSparseAccumulation = isa<SparseAccumulator>(crdDest) || isa<CrdHold>(crdDest)
+                    || isa<CrdDrop>(crdDest);
 
             // FIXME: This will eventually need to be the iteration algebra for fused kernels
             bool isIntersection = contains(contractionType, contractions.at(indexvar)) &&
@@ -863,7 +864,7 @@ namespace taco {
             if(repeatSigGenNode.defined() && crdDest.defined()) {
                 map<SamIR, string> edgeName;
                 if (hasSparseAccumulation) {
-                    edgeName[crdDest] = indexvar.getName() ;
+                    edgeName[crdDest] = indexvar.getName();
                     crdDest = Broadcast({crdDest, repeatSigGenNode}, sam::SamEdgeType::crd, id, edgeName);
                 } else {
                     crdDest = Broadcast({crdDest, repeatSigGenNode}, sam::SamEdgeType::crd, id);
