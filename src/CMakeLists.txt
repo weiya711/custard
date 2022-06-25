@@ -28,6 +28,7 @@ install(TARGETS taco DESTINATION lib)
 
 if (LINUX)
   target_link_libraries(taco PRIVATE ${TACO_LIBRARIES} dl)
+  target_link_libraries(taco PUBLIC stdc++fs)
 else()
   target_link_libraries(taco PRIVATE ${TACO_LIBRARIES})
 endif()

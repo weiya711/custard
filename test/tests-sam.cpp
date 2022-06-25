@@ -10,6 +10,7 @@
 #include "taco/index_notation/transformations.h"
 #include "taco/lower/lower.h"
 #include "op_factory.h"
+#include <experimental/filesystem>
 
 #include <tuple>
 
@@ -105,16 +106,17 @@ const Format DSSS({Dense, Sparse, Sparse, Sparse}, {0,1,2,3});
 const Format SSS({Sparse, Sparse, Sparse}, {0,1,2});
 const Format DSS({Dense, Sparse, Sparse}, {0,1,2});
 
-vector<std::string> tensors3 = { "facebook.tns", "fb1k.tns", "fb10k.tns",  "nell-1.tns", "nell-2.tns"};
+vector<std::string> tensors3 = { "fb1k.tns"};
+// vector<std::string> tensors3 = { "facebook.tns", "fb1k.tns", "fb10k.tns",  "nell-1.tns", "nell-2.tns"};
 // "amazon-reviews.tns", patents.tns", "reddit.tns" 
 
 
-TEST(sam, pack_sss) {
+TEST(sam, pack_sss012) {
     std::string frosttPath = std::getenv("FROSTT_PATH");
     std::string frosttFormatPath = std::getenv("FROSTT_FORMATTED_TACO_PATH");
     for (auto& tnsPath : tensors3) {
         std::string frosttTensorPath = frosttPath;
-        frosttTensorPath += tnsPath;
+        frosttTensorPath += "/"+tnsPath;
 
         auto pathSplit = taco::util::split(tnsPath, "/");
         auto filename = pathSplit[pathSplit.size() - 1];
@@ -126,20 +128,81 @@ TEST(sam, pack_sss) {
         std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SSS);
 
         ofstream origfile;
-        std::string outpath = frosttFormatPath + "/sss/";
-        std::string origpath = outpath + tensorName + ".txt";
+        std::string outpath = frosttFormatPath + "/";
+        std::string origpath = outpath + tensorName + "_sss.txt";
         cout << origpath << endl;
         origfile.open (origpath);
         origfile << frosttTensor << endl;
         origfile.close();
 
         ofstream shiftfile;
-        std::string shiftpath = outpath + tensorName + "_shift.txt";
+        std::string shiftpath = outpath + tensorName + "_shift_sss.txt";
         cout << shiftpath << endl;
         shiftfile.open (shiftpath);
         shiftfile << other << endl;
         shiftfile.close();
 
+    }
+}
+
+TEST(sam, pack_other) {
+    std::string otherPath = std::getenv("TACO_TENSOR_PATH");
+    otherPath += "/other";
+    std::string otherFormattedPath = std::getenv("TACO_TENSOR_PATH");
+    otherFormattedPath += "/other-formatted-taco";
+
+    cout << otherPath << endl;
+
+    vector<std::string> otherNames;
+
+    for (auto& tnsPath : tensors3) {
+        auto pathSplit = taco::util::split(tnsPath, "/");
+        auto filename = pathSplit[pathSplit.size() - 1];
+        auto tensorName = taco::util::split(filename, ".")[0];
+        cout << tensorName << "..." << endl;
+
+        if (std::experimental::filesystem::exists(otherPath)) {
+            for (auto &entry: std::experimental::filesystem::directory_iterator(otherPath)) {
+                std::string f(entry.path());
+
+                // Check that the filename ends with .mtx.
+                if (f.compare(f.size() - 4, 4, ".tns") == 0 && f.find(tensorName) != std::string::npos) {
+                    otherNames.push_back(entry.path());
+                }
+            }
+        }
+
+        cout << util::join(otherNames) << endl;
+
+        for (auto &otherfile : otherNames) {
+            std::string filePath = otherfile;
+
+            auto otherPathSplit = taco::util::split(otherfile, "/");
+            cout << util::join(otherPathSplit) << endl;
+            auto otherFilename = otherPathSplit[otherPathSplit.size() - 1];
+            auto otherName = otherFilename.substr(0, otherFilename.size() - 4);
+
+            cout << otherPath << endl;
+            cout << otherName << "..." << endl;
+
+            Tensor<int64_t> tensor, other;
+            Format format;
+            if (otherName.find("vec") != std::string::npos) {
+                format = Sparse;
+            } else {
+                format = DCSR;
+            }
+
+            std::tie(tensor, other) = inputCache.getUfuncInput(filePath, format);
+
+            ofstream origfile;
+            std::string outpath = otherFormattedPath + "/" + tensorName + "/";
+            std::string origpath = outpath + otherName + ".txt";
+            cout << origpath << endl;
+            origfile.open (origpath);
+            origfile << tensor << endl;
+            origfile.close();
+        }
     }
 }
 
