@@ -74,7 +74,9 @@ struct UfuncInputCache {
         }
 
         // Otherwise, we missed the cache. Load in the target tensor and process it.
-        this->lastLoaded = taco::read(path, format);
+
+        this->lastLoaded = taco::read(path, format);;
+
         // We assign lastPath after lastLoaded so that if taco::read throws an exception
         // then lastPath isn't updated to the new path.
         this->lastPath = path;
@@ -151,7 +153,7 @@ TEST(sam, pack_sss012) {
     }
 }
 
-TEST(sam, pack_other) {
+TEST(sam, pack_other_frostt) {
     std::string otherPath = std::getenv("TACO_TENSOR_PATH");
     otherPath += "/other";
     std::string otherFormattedPath = std::getenv("TACO_TENSOR_PATH");
@@ -212,3 +214,76 @@ TEST(sam, pack_other) {
     }
 }
 
+TEST(sam, pack_other_ss) {
+    std::string otherPath = std::getenv("TACO_TENSOR_PATH");
+    otherPath += "/other";
+    std::string otherFormattedPath = std::getenv("TACO_TENSOR_PATH");
+    otherFormattedPath += "/other-formatted-taco";
+
+    std::string tnsPath = getenv("SUITESPARSE_TENSOR_PATH");
+    cout << otherPath << endl;
+
+    vector<std::string> otherNames;
+
+    auto pathSplit = taco::util::split(tnsPath, "/");
+    auto filename = pathSplit[pathSplit.size() - 1];
+    auto tensorName = taco::util::split(filename, ".")[0];
+    cout << tensorName << "..." << endl;
+
+    if (std::experimental::filesystem::exists(otherPath)) {
+        for (auto &entry: std::experimental::filesystem::directory_iterator(otherPath)) {
+            std::string f(entry.path());
+
+            // Check that the filename ends with .mtx.
+            if (f.compare(f.size() - 4, 4, ".tns") == 0 && f.find(tensorName) != std::string::npos) {
+                otherNames.push_back(entry.path());
+            }
+        }
+    }
+
+    for (auto &otherfile : otherNames) {
+        std::string filePath = otherfile;
+
+        auto otherPathSplit = taco::util::split(otherfile, "/");
+        cout << util::join(otherPathSplit) << endl;
+        auto otherFilename = otherPathSplit[otherPathSplit.size() - 1];
+        auto otherName = otherFilename.substr(0, otherFilename.size() - 4);
+
+        cout << otherName << "..." << endl;
+
+        Tensor<int64_t> tensor, other;
+        Format format;
+        if (otherName.find("vec") != std::string::npos) {
+            format = Sparse;
+        } else {
+            format = DCSR;
+        }
+
+        // std::tie(tensor, other) = inputCache.getUfuncInput(filePath, format);
+
+        tensor = castToType<int64_t>("C", taco::read(filePath, format));
+        // Make sure tensor isn't empty
+        if (tensor.getOrder() == 0) {
+            if (otherName.find("vec") != std::string::npos) {
+                cout << "---EMPTY: " << otherName << endl;
+                tensor = Tensor<int64_t>("other", {1});
+                tensor.insert({0}, int64_t(1));
+            }
+            else {
+                tensor = Tensor<int64_t>("other", {1, 1});
+                tensor.insert({0, 0}, int64_t(1));
+            }
+        }
+
+        ofstream origfile;
+        std::string outpath = otherFormattedPath + "/";
+        std::string origpath = outpath + otherName + ".txt";
+        cout << origpath << endl;
+        origfile.open (origpath);
+        if(!origfile) {
+            cout << "FAILED" << endl;
+        }
+        origfile << tensor << endl;
+        origfile.close();
+    }
+}
