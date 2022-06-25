@@ -13,7 +13,7 @@
 #include <experimental/filesystem>
 
 #include <tuple>
-
+#include <ios>
 using namespace taco;
 
 template<typename T>
@@ -132,6 +132,9 @@ TEST(sam, pack_sss012) {
         std::string origpath = outpath + tensorName + "_sss.txt";
         cout << origpath << endl;
         origfile.open (origpath);
+        if(!origfile) {
+            cout << "FAILED" << endl;
+        }
         origfile << frosttTensor << endl;
         origfile.close();
 
@@ -139,6 +142,9 @@ TEST(sam, pack_sss012) {
         std::string shiftpath = outpath + tensorName + "_shift_sss.txt";
         cout << shiftpath << endl;
         shiftfile.open (shiftpath);
+        if(!shiftfile) {
+            cout << "FAILED" << endl;
+        }
         shiftfile << other << endl;
         shiftfile.close();
 
@@ -172,7 +178,6 @@ TEST(sam, pack_other) {
             }
         }
 
-        cout << util::join(otherNames) << endl;
 
         for (auto &otherfile : otherNames) {
             std::string filePath = otherfile;
@@ -181,8 +186,7 @@ TEST(sam, pack_other) {
             cout << util::join(otherPathSplit) << endl;
             auto otherFilename = otherPathSplit[otherPathSplit.size() - 1];
             auto otherName = otherFilename.substr(0, otherFilename.size() - 4);
-
-            cout << otherPath << endl;
+            
             cout << otherName << "..." << endl;
 
             Tensor<int64_t> tensor, other;
@@ -196,10 +200,12 @@ TEST(sam, pack_other) {
             std::tie(tensor, other) = inputCache.getUfuncInput(filePath, format);
 
             ofstream origfile;
-            std::string outpath = otherFormattedPath + "/" + tensorName + "/";
+            std::string outpath = otherFormattedPath + "/";
             std::string origpath = outpath + otherName + ".txt";
-            cout << origpath << endl;
             origfile.open (origpath);
+            if(!origfile) {
+                cout << "FAILED" << endl;
+            }
             origfile << tensor << endl;
             origfile.close();
         }
