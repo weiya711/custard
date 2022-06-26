@@ -87,6 +87,15 @@ TensorBase dispatchReadTNS(std::istream& stream, const T& format, bool pack) {
 }
 
 template <typename T>
+TensorBase dispatchReadTNS(std::string filename, const T& format, std::vector<int> dims, bool pack) {
+    std::fstream file;
+    util::openStream(file, filename, fstream::in);
+    TensorBase tensor = readTNS(file, format, dims, pack);
+    file.close();
+    return tensor;
+}
+
+template <typename T>
 TensorBase dispatchReadTNS(std::istream& stream, const T& format, std::vector<int> dims, bool pack) {
     std::vector<int>    coordinates;
     std::vector<double> values;
@@ -133,6 +142,14 @@ TensorBase dispatchReadTNS(std::istream& stream, const T& format, std::vector<in
     }
 
     return tensor;
+}
+
+TensorBase readTNS(std::string filename, const Format& format, std::vector<int> dims, bool pack) {
+    return dispatchReadTNS(filename, format, dims, pack);
+}
+
+TensorBase readTNS(std::istream& stream, const Format& format, std::vector<int> dims, bool pack) {
+    return dispatchReadTNS(stream, format, dims, pack);
 }
 
 
