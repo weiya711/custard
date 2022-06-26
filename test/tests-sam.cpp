@@ -75,7 +75,7 @@ struct UfuncInputCache {
 
         // Otherwise, we missed the cache. Load in the target tensor and process it.
 
-        this->lastLoaded = taco::read(path, format);;
+        this->lastLoaded = taco::read(path, format);
 
         // We assign lastPath after lastLoaded so that if taco::read throws an exception
         // then lastPath isn't updated to the new path.
