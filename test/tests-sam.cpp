@@ -108,8 +108,8 @@ const Format DSSS({Dense, Sparse, Sparse, Sparse}, {0,1,2,3});
 const Format SSS({Sparse, Sparse, Sparse}, {0,1,2});
 const Format DSS({Dense, Sparse, Sparse}, {0,1,2});
 
-vector<std::string> tensors3 = { "fb1k.tns"};
-// vector<std::string> tensors3 = { "facebook.tns", "fb1k.tns", "fb10k.tns",  "nell-1.tns", "nell-2.tns"};
+// vector<std::string> tensors3 = { "fb1k.tns"};
+vector<std::string> tensors3 = { "facebook.tns", "fb1k.tns", "fb10k.tns",  "nell-1.tns", "nell-2.tns"};
 // "amazon-reviews.tns", patents.tns", "reddit.tns" 
 
 
