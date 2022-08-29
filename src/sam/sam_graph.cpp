@@ -671,10 +671,10 @@ namespace taco {
                         for (int i = (int) getOrderedIndexVars().size(); i > 0; i--) {
                             // FIXME: check if this is always correct for more complicated kernels
                             auto indexvar = getOrderedIndexVars().at(i - 1);
-                            if (contains(resultWriteIRNodes, indexvar)) {
+                            //if (contains(resultWriteIRNodes, indexvar)) {
                                 inputIterationCrdDst[indexvar] = reduceNode;
                                 resultHasSource[indexvar] = true;
-                            }
+                            //}
                         }
                         reductionOrder.pop_back();
                         break;
