@@ -357,6 +357,7 @@ namespace taco {
               function<void(const taco::ReductionNode*,Matcher*)>([&](
                       const taco::ReductionNode* op, Matcher* ctx) {
                   result += 1;
+                  ctx->match(op->a);
               }));
         return result;
     }
@@ -411,16 +412,15 @@ namespace taco {
             }
         }
 
-        // Create map from tensor to index varible list for broadcasting.
+        // Create map from tensor to index variable list for broadcasting.
         // Generally it defaults to all index variables in expression, but this is not true
         // for expressions with inner ReductionNodes (sums)
         map<TensorVar, vector<IndexVar>> inputIterationIndexVarMap;
         // By default all tensors broadcast to all index variables
         // Just remove indexvars used in reductions from the tensors OUTSIDE of the reduction
-
+        // I.e. b(i) - sum(j, C(i,j)*d(j) should produce the map {b:i, C:i,j, d:i,j}
         IndexExpr tempExpr = content->expr;
         for (int ii = 0; ii < getNumReductionNodes(content->expr); ii++) {
-            std::cout << tempExpr << endl;
             match(tempExpr,
                   function<void(const taco::ReductionNode*,Matcher*)>([&](
                           const taco::ReductionNode* op, Matcher* ctx) {
@@ -431,6 +431,7 @@ namespace taco {
                               inputIterationIndexVarMap[tensor] = indexVars;
                           }
                       }
+                      ctx->match(op->a);
                   }));
             auto rewriter = RemoveReductionTree();
             tempExpr = rewriter.removeReductionTree(tempExpr);
@@ -442,17 +443,15 @@ namespace taco {
             inputIterationIndexVarMap[tensor] = indexVars;
         }
 
-        std::cout << tempExpr << ", " << content->expr << std::endl;
-
-
-        std::cout << "InputIterationIndexVarMap" << std::endl;
-        for (auto item : inputIterationIndexVarMap) {
-            std::cout << item.first << ": ";
-            for (auto ivar : item.second) {
-                std::cout << ivar << ",";
-            }
-            std::cout << std::endl;
-        }
+        // Used to print map above
+//        std::cout << "InputIterationIndexVarMap" << std::endl;
+//        for (auto item : inputIterationIndexVarMap) {
+//            std::cout << item.first << ": ";
+//            for (auto ivar : item.second) {
+//                std::cout << ivar << ",";
+//            }
+//            std::cout << std::endl;
+//        }
 
         // If dimension doesn't exist due to result broadcasting, use result dimension
         for (const auto& indexvar : getOrderedIndexVars()) {
@@ -821,7 +820,6 @@ namespace taco {
             }
         }
 
-        std::cout << content->expr << endl;
 
         SamIR computeBlock = prevComputeNode;
         map<TensorVar, SamIR> inputValsArrays;
@@ -878,6 +876,8 @@ namespace taco {
 
         // Add in crd drop if needed
         // Map that replaces output assignments with CrdDrop blocks if necessary
+        // ThIS IS THE OLD CRDDROP ALGORITHM WHICH IS PROBABLY WRONG (Based only on intersections with adjacent
+        // intersection levels)
 //        bool adjacentContractionLevel = false;
 //        IndexVar prevContractionVar = IndexVar();
 //        bool outerIntersection = false;
@@ -916,18 +916,22 @@ namespace taco {
 //
 //        }
 
+        // This CrdDrop Algorithm assumes that empty reductions get filtered out.
+        // For implementations that have empty reductions = 0, this will still work
+        // because CrdDrop blocks should just be pass-through. Although it would work with
+        // Fewer CrdDrop blocks...
         map<IndexVar, bool> hasCrdDrop;
         IndexVar prevContractionVar = IndexVar();
-        bool innerIntersection = false;
         for (int count = 0; count < (int) getOrderedIndexVars().size() ; count++) {
             IndexVar indexVar = getOrderedIndexVars().at(count);
 
-            bool hasOuterResult = count > 0;
+            bool hasOuterResult = false;
             for (int outerCount = 0; outerCount < count; outerCount++) {
                 IndexVar outerIndexVar = getOrderedIndexVars().at(outerCount);
                 bool isOuterResult =  std::count(resultVars.begin(), resultVars.end(), outerIndexVar) > 0;
-                hasOuterResult = hasOuterResult && isOuterResult;
+                hasOuterResult = hasOuterResult || isOuterResult;
             }
+            hasOuterResult = hasOuterResult && (count > 0);
 
 
             bool innerIntersection = false;
@@ -939,9 +943,6 @@ namespace taco {
             }
 
             bool isResult =  std::count(resultVars.begin(), resultVars.end(), indexVar) > 0;
-            std::cout << count << ":" << indexVar << "," << prevContractionVar << ", inter:"
-                      << innerIntersection << ", hasOuterResult: " << hasOuterResult << ", isResult:" << isResult << std::endl;
-            // FIXME: See if the result var needing to be there is necessary... Think about X(i) = B(i,j)*C(i,j)
 
             if (innerIntersection and hasOuterResult) {
                 auto node = CrdDrop(inputIterationCrdDst[prevContractionVar], inputIterationCrdDst[indexVar],
@@ -961,7 +962,7 @@ namespace taco {
             prevContractionVar = indexVar;
         }
 
-        //
+        // FIXME: The SpAcc should be moved to the compute tree taco::ReductionNode detation too.
         int spaccCount = 0;
         map<IndexVar, vector<SamIR>> nodeMap;
         for (int count = 0; count < numIndexVars; count++) {
