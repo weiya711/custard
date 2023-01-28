@@ -14,6 +14,7 @@
 #include "taco/util/strings.h"
 #include "taco/util/collections.h"
 #include "sam_printer.h"
+#include "taco/index_notation/index_notation_rewriter.h"
 
 using namespace std;
 
@@ -327,6 +328,56 @@ namespace taco {
         return mode;
     }
 
+    vector<IndexVar> getAccessVars(IndexExpr expr) {
+        set<IndexVar> ivars;
+        match(expr,
+              function<void(const taco::AccessNode*,Matcher*)>([&](
+                      const taco::AccessNode* op, Matcher* ctx) {
+                  auto tensor = op->tensorVar;
+                  set<IndexVar> temp(op->indexVars.begin(), op->indexVars.end());
+                  ivars.insert(temp.begin(), temp.end());
+              }));
+        vector<IndexVar> result(ivars.begin(), ivars.end());
+        return result;
+    }
+
+    vector<TensorVar> getTensorVars(IndexExpr expr) {
+        vector<TensorVar> tensors;
+        match(expr,
+              function<void(const taco::AccessNode*,Matcher*)>([&](
+                      const taco::AccessNode* op, Matcher* ctx) {
+                  tensors.push_back(op->tensorVar);
+              }));
+        return tensors;
+    }
+
+    int getNumReductionNodes(IndexExpr expr) {
+        int result = 0;
+        match(expr,
+              function<void(const taco::ReductionNode*,Matcher*)>([&](
+                      const taco::ReductionNode* op, Matcher* ctx) {
+                  result += 1;
+              }));
+        return result;
+    }
+
+    struct RemoveReductionTree : public IndexNotationRewriter {
+        using IndexNotationRewriter::visit;
+
+        RemoveReductionTree() = default;
+
+        IndexExpr removeReductionTree(IndexExpr expr) {
+            return rewrite(expr);
+        }
+
+        void visit(const ReductionNode* node) {
+            if (getNumReductionNodes(node->a) == 0) {
+                expr = 0;
+                return;
+            }
+            IndexNotationRewriter::visit(node->a);
+        }
+    };
 
     SamIR SAMGraph::makeGraph() {
         int id = 0;
@@ -358,6 +409,49 @@ namespace taco {
                     dimensionMap[var] = tensor.getName() + to_string(mode) + "_dim";
                 }
             }
+        }
+
+        // Create map from tensor to index varible list for broadcasting.
+        // Generally it defaults to all index variables in expression, but this is not true
+        // for expressions with inner ReductionNodes (sums)
+        map<TensorVar, vector<IndexVar>> inputIterationIndexVarMap;
+        // By default all tensors broadcast to all index variables
+        // Just remove indexvars used in reductions from the tensors OUTSIDE of the reduction
+
+        IndexExpr tempExpr = content->expr;
+        for (int ii = 0; ii < getNumReductionNodes(content->expr); ii++) {
+            std::cout << tempExpr << endl;
+            match(tempExpr,
+                  function<void(const taco::ReductionNode*,Matcher*)>([&](
+                          const taco::ReductionNode* op, Matcher* ctx) {
+                      if (getNumReductionNodes(op->a) == 0) {
+                          auto tensors = getTensorVars(op->a);
+                          auto indexVars = getAccessVars(op->a);
+                          for (auto tensor : tensors) {
+                              inputIterationIndexVarMap[tensor] = indexVars;
+                          }
+                      }
+                  }));
+            auto rewriter = RemoveReductionTree();
+            tempExpr = rewriter.removeReductionTree(tempExpr);
+        }
+        // Last iteration for outermost level with no reduction nodes
+        auto outerTensors = getTensorVars(tempExpr);
+        auto indexVars = getAccessVars(tempExpr);
+        for (auto tensor : outerTensors) {
+            inputIterationIndexVarMap[tensor] = indexVars;
+        }
+
+        std::cout << tempExpr << ", " << content->expr << std::endl;
+
+
+        std::cout << "InputIterationIndexVarMap" << std::endl;
+        for (auto item : inputIterationIndexVarMap) {
+            std::cout << item.first << ": ";
+            for (auto ivar : item.second) {
+                std::cout << ivar << ",";
+            }
+            std::cout << std::endl;
         }
 
         // If dimension doesn't exist due to result broadcasting, use result dimension
@@ -644,7 +738,8 @@ namespace taco {
                 auto red = *it;
                 switch (red) {
                     case SamNodeType::Reduce:
-                        reduceNode = taco::sam::Reduce(prevComputeNode, id);
+                        reduceNode = prevComputeNode;
+                        // reduceNode = taco::sam::Reduce(prevComputeNode, id);
                         taco_iassert(reductionOrder.back() == 0) << "Reduce node must have a reduction order of 0";
                         taco_iassert(!reductionOrder.empty()) << "Number of reduction (Reduction) nodes does not "
                                                                  "match the number of reduction orders.";
@@ -726,6 +821,8 @@ namespace taco {
             }
         }
 
+        std::cout << content->expr << endl;
+
         SamIR computeBlock = prevComputeNode;
         map<TensorVar, SamIR> inputValsArrays;
         match(content->expr,
@@ -749,6 +846,15 @@ namespace taco {
                   id++;
                   inputValsArrays[tensor] = array;
               }),
+              function<void(const taco::ReductionNode*,Matcher*)>([&](
+                        const taco::ReductionNode* op, Matcher* ctx) {
+                  // FIXME: This should be any type of reducer (including SpAcc, not just reduce block)
+                  auto reduce = taco::sam::Reduce(computeBlock, id);
+                  id++;
+            computeBlock = reduce;
+            ctx->match(op->a);
+            computeBlock = reduce;
+        }),
               function<void(const taco::SubNode*,Matcher*)>([&](
                       const taco::SubNode* op, Matcher* ctx) {
                   auto sub = taco::sam::Add(computeBlock, id, true);
@@ -772,39 +878,90 @@ namespace taco {
 
         // Add in crd drop if needed
         // Map that replaces output assignments with CrdDrop blocks if necessary
-        bool adjacentContractionLevel = false;
-        IndexVar prevContractionVar = IndexVar();
-        for (int count = 0; count < (int) getOrderedIndexVars().size(); count++) {
-            IndexVar indexVar = getOrderedIndexVars().at(count);
-            
-            bool isIntersection = contains(contractionType, contractions.at(indexVar)) &&
-                                  contractionType.at(contractions.at(indexVar));
-            // FIXME: See if the result var needing to be there is necessary... Think about X(i) = B(i,j)*C(i,j)
-            if (std::count(resultVars.begin(), resultVars.end(), indexVar) > 0 and
-                contains(contractions, indexVar) and contractions.at(indexVar).size() > 1 and
-                isIntersection and adjacentContractionLevel) {
+//        bool adjacentContractionLevel = false;
+//        IndexVar prevContractionVar = IndexVar();
+//        bool outerIntersection = false;
+//        std::cout << "OUTER," << outerIntersection << std::endl;
+//        for (int count = 0; count < (int) getOrderedIndexVars().size(); count++) {
+//            IndexVar indexVar = getOrderedIndexVars().at(count);
+//
+//            bool isIntersection = contains(contractionType, contractions.at(indexVar)) &&
+//                                  contractionType.at(contractions.at(indexVar));
+//            std::cout << isIntersection  << "," << outerIntersection << std::endl;
+//            outerIntersection = (outerIntersection or isIntersection);
+//            std::cout << isIntersection  << "," << outerIntersection << std::endl;
+//            bool hasOuter = count > 0;
+//
+//            bool isResult =  std::count(resultVars.begin(), resultVars.end(), indexVar) > 0;
+//            std::cout << indexVar << "," << prevContractionVar << " outer: " << adjacentContractionLevel << ", inter:"
+//            << isIntersection  << "," << outerIntersection << ", contraction size: " << contractions.at(indexVar).size() << ", isResult:" << isResult << std::endl;
+//            // FIXME: See if the result var needing to be there is necessary... Think about X(i) = B(i,j)*C(i,j)
+//
+//            if (hasOuter and outerIntersection) {
+//                auto node = CrdDrop(inputIterationCrdDst[prevContractionVar], inputIterationCrdDst[indexVar],
+//                                    prevContractionVar, indexVar, id);
+//                id++;
+//
+//                inputIterationCrdDst[prevContractionVar] = node;
+//                if (!isResult) {
+//                    resultHasSource[indexVar] = true;
+//                }
+//                inputIterationCrdDst[indexVar] = node;
+//
+//            }
+//
+//            if (isResult) {
+//                prevContractionVar = indexVar;
+//            }
+//
+//        }
 
+        map<IndexVar, bool> hasCrdDrop;
+        IndexVar prevContractionVar = IndexVar();
+        bool innerIntersection = false;
+        for (int count = 0; count < (int) getOrderedIndexVars().size() ; count++) {
+            IndexVar indexVar = getOrderedIndexVars().at(count);
+
+            bool hasOuterResult = count > 0;
+            for (int outerCount = 0; outerCount < count; outerCount++) {
+                IndexVar outerIndexVar = getOrderedIndexVars().at(outerCount);
+                bool isOuterResult =  std::count(resultVars.begin(), resultVars.end(), outerIndexVar) > 0;
+                hasOuterResult = hasOuterResult && isOuterResult;
+            }
+
+
+            bool innerIntersection = false;
+            for (int innerCount = count; innerCount < (int) getOrderedIndexVars().size(); innerCount++) {
+                IndexVar innerIndexVar = getOrderedIndexVars().at(innerCount);
+                bool isIntersection = contains(contractionType, contractions.at(innerIndexVar)) &&
+                                      contractionType.at(contractions.at(innerIndexVar));
+                innerIntersection = innerIntersection || isIntersection;
+            }
+
+            bool isResult =  std::count(resultVars.begin(), resultVars.end(), indexVar) > 0;
+            std::cout << count << ":" << indexVar << "," << prevContractionVar << ", inter:"
+                      << innerIntersection << ", hasOuterResult: " << hasOuterResult << ", isResult:" << isResult << std::endl;
+            // FIXME: See if the result var needing to be there is necessary... Think about X(i) = B(i,j)*C(i,j)
+
+            if (innerIntersection and hasOuterResult) {
                 auto node = CrdDrop(inputIterationCrdDst[prevContractionVar], inputIterationCrdDst[indexVar],
                                     prevContractionVar, indexVar, id);
                 id++;
 
+                if (!resultHasSource[prevContractionVar]) {
+                    resultHasSource[prevContractionVar] = true;
+                }
                 inputIterationCrdDst[prevContractionVar] = node;
+                if (!isResult) {
+                    resultHasSource[indexVar] = true;
+                }
                 inputIterationCrdDst[indexVar] = node;
-
-                adjacentContractionLevel = true;
-                prevContractionVar = indexVar;
-            } else if (std::count(resultVars.begin(), resultVars.end(), indexVar) > 0 and
-                        contains(contractions, indexVar) and contractions.at(indexVar).size() > 1
-                        and isIntersection) {
-                adjacentContractionLevel = true;
-                prevContractionVar = indexVar;
-            } else {
-                adjacentContractionLevel = false;
-                prevContractionVar = IndexVar();
             }
+
+            prevContractionVar = indexVar;
         }
 
-        // Input Iteration
+        //
         int spaccCount = 0;
         map<IndexVar, vector<SamIR>> nodeMap;
         for (int count = 0; count < numIndexVars; count++) {
@@ -834,7 +991,9 @@ namespace taco {
 
                 auto vars = tensorPath.getVariables();
 
-                if (std::count(vars.begin(), vars.end(), indexvar) == 0) {
+                bool skipIndexVar = std::count(inputIterationIndexVarMap.at(tensorVar).begin(),
+                                               inputIterationIndexVarMap.at(tensorVar).end(), indexvar) == 0;
+                if (std::count(vars.begin(), vars.end(), indexvar) == 0 and !skipIndexVar) {
                     if (count == 0) {
                         node = Repeat(inputValsArrays[tensorVar], indexvar, tensorVar, id, isRoot);
                     } else {
@@ -855,7 +1014,7 @@ namespace taco {
                 id++;
                 repeatSigGenNode = RepeatSigGen(broadcast, indexvar, id);
                 id++;
-            } else if (repeatNodes.size() > 0) {
+            } else if (!repeatNodes.empty()) {
                 repeatSigGenNode = RepeatSigGen(repeatNodes.at(0), indexvar, id);
                 id++;
             }
@@ -922,7 +1081,10 @@ namespace taco {
 
                 auto vars = tensorPath.getVariables();
 
-                if (std::count(vars.begin(), vars.end(), indexvar) > 0) {
+                bool skipIndexVar = std::count(inputIterationIndexVarMap.at(tensorVar).begin(),
+                                               inputIterationIndexVarMap.at(tensorVar).end(), indexvar) == 0;
+
+                if (std::count(vars.begin(), vars.end(), indexvar) > 0 and !skipIndexVar) {
                     size_t mode = getMode(indexvar, tensorPath);
                     map<SamIR, string> edgeName;
                     if (hasContraction) {
@@ -948,6 +1110,17 @@ namespace taco {
                         rootNodes.push_back(node);
                     }
                 }
+
+                // Make sure you connect things back to the previous node
+                if (skipIndexVar) {
+                    if (count > 0) {
+                        auto prevProcessedIndexVar = getOrderedIndexVars().at(numIndexVars - count);
+                        nodes[ntp] = nodeMap[prevProcessedIndexVar][ntp];
+                    } else {
+                        nodes[ntp] = inputValsArrays[tensorVar];
+                    }
+                }
+
             }
             nodeMap[indexvar] = nodes;
 
