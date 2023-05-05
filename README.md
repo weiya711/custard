@@ -1,3 +1,7 @@
+The Custard compiler commands: 
+
+``` dot -Tpng <file.gv> -o <file.png>```
+
 The Tensor Algebra Compiler (taco) is a C++ library that computes
 tensor algebra expressions on sparse and dense tensors.  It uses novel
 compiler techniques to get performance competitive with hand-optimized
