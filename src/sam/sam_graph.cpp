@@ -691,8 +691,8 @@ namespace taco {
         // Output Assignment: Crds ONLY
         map<IndexVar, SamIR> resultWriteIRNodes;
         map<IndexVar, bool> resultHasSource;
-        for (int count = 0; count < (int) getOrderedIndexVars().size(); count++) {
-            IndexVar indexvar = getOrderedIndexVars().at(getOrderedIndexVars().size() - 1 - count);
+        for (int count = 0; count < numIndexVars; count++) {
+            IndexVar indexvar = getOrderedIndexVars().at(numIndexVars - 1 - count);
             if (std::count(resultVars.begin(), resultVars.end(), indexvar) > 0) {
                 size_t mode = getMode(indexvar, getResultTensorPath());
                 auto sizeStr = sizeMap.at(indexvar);
@@ -724,6 +724,7 @@ namespace taco {
             }
         }
 
+        // Code to add in reduction nodes (including sparse accumulators)
         map<IndexVar, SamIR> inputIterationCrdDst(resultWriteIRNodes);
         SamIR reduceNode = SamIR();
         auto prevComputeNode = resultWriteVals;
@@ -748,27 +749,35 @@ namespace taco {
                         taco_iassert(!reductionOrder.empty()) << "Number of reduction (Sparse Accumulation) nodes does not "
                                                                  "match the number of reduction orders.";
 
-                        for (int i = (int) getOrderedIndexVars().size(); i > 0; i--) {
-                            auto indexvar = getOrderedIndexVars().at(i - 1);
+                    for (int i = numIndexVars - 1; i >= (numIndexVars - 1 - reductionOrder.back()); i--) {
+                            auto indexvar = getOrderedIndexVars().at(i);
+                            // Only need to add in output coordinates to the sparse accumulator if there
+                            // is a level writer
                             if (contains(resultWriteIRNodes, indexvar)) {
                                 spAccCrds[spaccInputCnt] = resultWriteIRNodes[indexvar];
-                                spAccIndexvarMap[spaccInputCnt] = indexvar;
-                                spaccInputCnt++;
-                                outermostSpAccVar = i - 1;
-                                innermostSpAccVar = innermostSpAccVar < 0 ? i-1 : innermostSpAccVar;
+                                // Only needed for CrdHold generation
+                                // outermostSpAccVar = i - 1;
+                                // innermostSpAccVar = innermostSpAccVar < 0 ? i-1 : innermostSpAccVar;
                             }
+                            // Need to have a map for all inputs, which is all coordinates for the reduction
+                            // (order + 1)
+                            spAccIndexvarMap[spaccInputCnt] = indexvar;
+                            spaccInputCnt++;
                         }
 
                         reduceNode = taco::sam::SparseAccumulator(prevComputeNode,spAccCrds, reductionOrder.back(),
                                                                   spAccIndexvarMap, id);
 
-                        for (int i = (int) getOrderedIndexVars().size(); i > 0; i--) {
+                        // Only pass coordinates to sparse accumulators for sparse accumulator d + 1, where d is the dimension of the sparse accumulator.
+                        // For example, a sparse accumulator for a vector should take both the value and
+                        for (int i = numIndexVars - 1; i >= (numIndexVars - 1 - reductionOrder.back()); i--) {
                             // FIXME: check if this is always correct for more complicated kernels
-                            auto indexvar = getOrderedIndexVars().at(i - 1);
-                            //if (contains(resultWriteIRNodes, indexvar)) {
-                                inputIterationCrdDst[indexvar] = reduceNode;
-                                resultHasSource[indexvar] = true;
-                            //}
+                            auto indexvar = getOrderedIndexVars().at(i);
+                            cout << indexvar << ", " << endl;
+                            // if (contains(resultWriteIRNodes, indexvar)) {
+                            inputIterationCrdDst[indexvar] = reduceNode;
+                            resultHasSource[indexvar] = true;
+                            // }
                         }
                         reductionOrder.pop_back();
                         break;
@@ -780,45 +789,46 @@ namespace taco {
             }
         }
 
+        // Removed CrdHold code since crdholds are placed in SAM simulator now
         // Add in CrdHolds if sparse accumulation exists
-        SamIR crdhold;
-        if (std::count(reduction.begin(), reduction.end(), SamNodeType::SparseAccumulator)) {
-            for (int count = innermostSpAccVar - 1; count >= outermostSpAccVar; count--) {
-                IndexVar indexvar = getOrderedIndexVars().at(count);
-                int distance = innermostSpAccVar - count;
-                if (contains(resultWriteIRNodes, indexvar)) {
-                    for (int i = 0; i < distance; i++) {
-                        auto outerIndexVar = indexvar;
-                        auto innerIndexVar = getOrderedIndexVars().at(count + distance - i);
-
-                        auto crdDestOuter = contains(resultHasSource, outerIndexVar) && resultHasSource.at(outerIndexVar) ?
-                                       inputIterationCrdDst.at(outerIndexVar) : SamIR();
-                        auto crdDestInner = contains(resultHasSource, innerIndexVar) && resultHasSource.at(innerIndexVar) ?
-                                       inputIterationCrdDst.at(innerIndexVar) : SamIR();
-
-                        if (i == 0) {
-                            crdhold = CrdHold(crdDestOuter, crdDestInner,
-                                                   outerIndexVar, innerIndexVar, id);
-                            id++;
-                            inputIterationCrdDst[outerIndexVar] = crdhold;
-                            inputIterationCrdDst[innerIndexVar] = crdhold;
-                        } else {
-                            crdhold = CrdHold(crdDestOuter, crdDestInner,
-                                                   outerIndexVar,
-                                                   innerIndexVar, id);
-                            id++;
-                            inputIterationCrdDst[outerIndexVar] = crdhold;
-                            inputIterationCrdDst[innerIndexVar] = crdhold;
-                        }
-                        resultHasSource[outerIndexVar] = true;
-                        resultHasSource[innerIndexVar] = true;
-                    }
-
-                } else if (contains(resultWriteIRNodes, indexvar)) {
-                    distance = 0;
-                }
-            }
-        }
+//        SamIR crdhold;
+//        if (std::count(reduction.begin(), reduction.end(), SamNodeType::SparseAccumulator)) {
+//            for (int count = innermostSpAccVar - 1; count >= outermostSpAccVar; count--) {
+//                IndexVar indexvar = getOrderedIndexVars().at(count);
+//                int distance = innermostSpAccVar - count;
+//                if (contains(resultWriteIRNodes, indexvar)) {
+//                    for (int i = 0; i < distance; i++) {
+//                        auto outerIndexVar = indexvar;
+//                        auto innerIndexVar = getOrderedIndexVars().at(count + distance - i);
+//
+//                        auto crdDestOuter = contains(resultHasSource, outerIndexVar) && resultHasSource.at(outerIndexVar) ?
+//                                       inputIterationCrdDst.at(outerIndexVar) : SamIR();
+//                        auto crdDestInner = contains(resultHasSource, innerIndexVar) && resultHasSource.at(innerIndexVar) ?
+//                                       inputIterationCrdDst.at(innerIndexVar) : SamIR();
+//
+//                        if (i == 0) {
+//                            crdhold = CrdHold(crdDestOuter, crdDestInner,
+//                                                   outerIndexVar, innerIndexVar, id);
+//                            id++;
+//                            inputIterationCrdDst[outerIndexVar] = crdhold;
+//                            inputIterationCrdDst[innerIndexVar] = crdhold;
+//                        } else {
+//                            crdhold = CrdHold(crdDestOuter, crdDestInner,
+//                                                   outerIndexVar,
+//                                                   innerIndexVar, id);
+//                            id++;
+//                            inputIterationCrdDst[outerIndexVar] = crdhold;
+//                            inputIterationCrdDst[innerIndexVar] = crdhold;
+//                        }
+//                        resultHasSource[outerIndexVar] = true;
+//                        resultHasSource[innerIndexVar] = true;
+//                    }
+//
+//                } else if (contains(resultWriteIRNodes, indexvar)) {
+//                    distance = 0;
+//                }
+//            }
+//        }
 
 
         SamIR computeBlock = prevComputeNode;
@@ -881,19 +891,15 @@ namespace taco {
 //        bool adjacentContractionLevel = false;
 //        IndexVar prevContractionVar = IndexVar();
 //        bool outerIntersection = false;
-//        std::cout << "OUTER," << outerIntersection << std::endl;
 //        for (int count = 0; count < (int) getOrderedIndexVars().size(); count++) {
 //            IndexVar indexVar = getOrderedIndexVars().at(count);
 //
 //            bool isIntersection = contains(contractionType, contractions.at(indexVar)) &&
 //                                  contractionType.at(contractions.at(indexVar));
-//            std::cout << isIntersection  << "," << outerIntersection << std::endl;
 //            outerIntersection = (outerIntersection or isIntersection);
-//            std::cout << isIntersection  << "," << outerIntersection << std::endl;
 //            bool hasOuter = count > 0;
 //
 //            bool isResult =  std::count(resultVars.begin(), resultVars.end(), indexVar) > 0;
-//            std::cout << indexVar << "," << prevContractionVar << " outer: " << adjacentContractionLevel << ", inter:"
 //            << isIntersection  << "," << outerIntersection << ", contraction size: " << contractions.at(indexVar).size() << ", isResult:" << isResult << std::endl;
 //            // FIXME: See if the result var needing to be there is necessary... Think about X(i) = B(i,j)*C(i,j)
 //
@@ -962,7 +968,7 @@ namespace taco {
             prevContractionVar = indexVar;
         }
 
-        // FIXME: The SpAcc should be moved to the compute tree taco::ReductionNode detation too.
+        // FIXME: The SpAcc should be moved to the compute tree taco::ReductionNode detection too.
         int spaccCount = 0;
         map<IndexVar, vector<SamIR>> nodeMap;
         for (int count = 0; count < numIndexVars; count++) {
