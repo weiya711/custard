@@ -512,11 +512,13 @@ namespace sam {
                             edgeType = "";
                             break;
                     }
+                    edgeIndex = contains(op->edgeName, node) ? op->edgeName.at(node) : "";
                     os << tab << op->nodeID << " -> ";
                     node.accept(this);
                 }
             }
             edgeType = "";
+            edgeIndex = "";
         }
         printedNodes.push_back(op->nodeID);
     }
@@ -671,6 +673,7 @@ namespace sam {
             for (auto out_crd: op->out_crds) {
                 printComment = true;
                 comment = "out-" + op->ivarMap.at(out_crd.first).getName();
+                edgeIndex = op->ivarMap.at(out_crd.first).getName();
                 edgeType = "crd";
                 os << tab << op->nodeID << " -> ";
                 out_crd.second.accept(this);
@@ -678,6 +681,7 @@ namespace sam {
 
 
             edgeType = "";
+            edgeIndex = "";
         }
         printedNodes.push_back(op->nodeID);
     }
@@ -689,14 +693,16 @@ namespace sam {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_outer_crd.defined()) {
                 edgeType = "crd";
+                edgeIndex = op->outer.getName();
                 printComment = true;
-                comment = "outer-"+op->outer.getName();
+                comment = "outer-" + op->outer.getName();
                 os << tab << op->nodeID << " -> ";
                 op->out_outer_crd.accept(this);
             }
 
             if (op->out_inner_crd.defined()) {
                 edgeType = "crd";
+                edgeIndex = op->inner.getName();
                 printComment = true;
                 comment = "inner-"+op->inner.getName();
                 os << tab << op->nodeID << " -> ";
@@ -704,6 +710,7 @@ namespace sam {
             }
 
             edgeType = "";
+            edgeIndex = "";
         }
         printedNodes.push_back(op->nodeID);
     }
@@ -715,6 +722,7 @@ namespace sam {
         if (std::count(printedNodes.begin(), printedNodes.end(), op->nodeID) == 0) {
             if (op->out_outer_crd.defined()) {
                 edgeType = "crd";
+                edgeIndex = op->outer.getName();
                 printComment = true;
                 comment = "outer-"+op->outer.getName();
                 os << tab << op->nodeID << " -> ";
@@ -723,6 +731,7 @@ namespace sam {
 
             if (op->out_inner_crd.defined()) {
                 edgeType = "crd";
+                edgeIndex = op->inner.getName();
                 printComment = true;
                 comment = "inner-"+op->inner.getName();
                 os << tab << op->nodeID << " -> ";
@@ -730,6 +739,7 @@ namespace sam {
             }
 
             edgeType = "";
+            edgeIndex = "";
         }
         printedNodes.push_back(op->nodeID);
     }
@@ -744,6 +754,9 @@ namespace sam {
         }
         if (printAttributes) {
             ss << " type=\"" << (edgeType.empty() ? "val" : edgeType) << "\"";
+            if (!edgeIndex.empty()) {
+              ss << " index=\"" << edgeIndex << "\"";
+            }
         }
         if (printComment) {
             ss << " comment=\"" << comment << "\"";

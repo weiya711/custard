@@ -137,6 +137,7 @@ namespace sam {
         bool printAttributes = true;
         std::string tab = "    ";
         std::string edgeType;
+        std::string edgeIndex;
         std::vector<int> printedNodes;
         std::map<std::string, std::string> edgeStyle = {{"ref", " style=bold"}, {"crd", " style=dashed"},
                                                         {"repsig", " style=dotted"}, {"bv", " style=dashed"}, {"",""}};

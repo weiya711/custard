@@ -734,59 +734,59 @@ namespace taco {
         map<int, IndexVar> spAccIndexvarMap;
         if (!reduction.empty()) {
             map<int, SamIR> spAccCrds;
-            for (auto it =  reduction.rbegin(); it != reduction.rend(); it++) {
-                auto red = *it;
-                switch (red) {
-                    case SamNodeType::Reduce:
-                        reduceNode = prevComputeNode;
-                        // reduceNode = taco::sam::Reduce(prevComputeNode, id);
-                        taco_iassert(reductionOrder.back() == 0) << "Reduce node must have a reduction order of 0";
-                        taco_iassert(!reductionOrder.empty()) << "Number of reduction (Reduction) nodes does not "
-                                                                 "match the number of reduction orders.";
-                        reductionOrder.pop_back();
-                        break;
-                    case SamNodeType::SparseAccumulator:
-                        taco_iassert(!reductionOrder.empty()) << "Number of reduction (Sparse Accumulation) nodes does not "
-                                                                 "match the number of reduction orders.";
-
-                    for (int i = numIndexVars - 1; i >= (numIndexVars - 1 - reductionOrder.back()); i--) {
-                            auto indexvar = getOrderedIndexVars().at(i);
-                            // Only need to add in output coordinates to the sparse accumulator if there
-                            // is a level writer
-                            if (contains(resultWriteIRNodes, indexvar)) {
-                                spAccCrds[spaccInputCnt] = resultWriteIRNodes[indexvar];
-                                // Only needed for CrdHold generation
-                                // outermostSpAccVar = i - 1;
-                                // innermostSpAccVar = innermostSpAccVar < 0 ? i-1 : innermostSpAccVar;
-                            }
-                            // Need to have a map for all inputs, which is all coordinates for the reduction
-                            // (order + 1)
-                            spAccIndexvarMap[spaccInputCnt] = indexvar;
-                            spaccInputCnt++;
-                        }
-
-                        reduceNode = taco::sam::SparseAccumulator(prevComputeNode,spAccCrds, reductionOrder.back(),
-                                                                  spAccIndexvarMap, id);
-
-                        // Only pass coordinates to sparse accumulators for sparse accumulator d + 1, where d is the dimension of the sparse accumulator.
-                        // For example, a sparse accumulator for a vector should take both the value and
-                        for (int i = numIndexVars - 1; i >= (numIndexVars - 1 - reductionOrder.back()); i--) {
-                            // FIXME: check if this is always correct for more complicated kernels
-                            auto indexvar = getOrderedIndexVars().at(i);
-                            cout << indexvar << ", " << endl;
-                            // if (contains(resultWriteIRNodes, indexvar)) {
-                            inputIterationCrdDst[indexvar] = reduceNode;
-                            resultHasSource[indexvar] = true;
-                            // }
-                        }
-                        reductionOrder.pop_back();
-                        break;
-                    default:
-                        break;
-                }
-                prevComputeNode = reduceNode;
-                id++;
-            }
+//            for (auto it =  reduction.rbegin(); it != reduction.rend(); it++) {
+//                auto red = *it;
+//                switch (red) {
+//                    case SamNodeType::Reduce:
+//                        reduceNode = prevComputeNode;
+//                        // reduceNode = taco::sam::Reduce(prevComputeNode, id);
+//                        taco_iassert(reductionOrder.back() == 0) << "Reduce node must have a reduction order of 0";
+//                        taco_iassert(!reductionOrder.empty()) << "Number of reduction (Reduction) nodes does not "
+//                                                                 "match the number of reduction orders.";
+////                        reductionOrder.pop_back();
+//                        break;
+//                    case SamNodeType::SparseAccumulator:
+//                        taco_iassert(!reductionOrder.empty()) << "Number of reduction (Sparse Accumulation) nodes does not "
+//                                                                 "match the number of reduction orders.";
+//
+////                    for (int i = numIndexVars - 1; i >= (numIndexVars - 1 - reductionOrder.back()); i--) {
+////                            auto indexvar = getOrderedIndexVars().at(i);
+////                            // Only need to add in output coordinates to the sparse accumulator if there
+////                            // is a level writer
+////                            if (contains(resultWriteIRNodes, indexvar)) {
+////                                spAccCrds[spaccInputCnt] = resultWriteIRNodes[indexvar];
+////                                // Only needed for CrdHold generation
+////                                // outermostSpAccVar = i - 1;
+////                                // innermostSpAccVar = innermostSpAccVar < 0 ? i-1 : innermostSpAccVar;
+////                            }
+////                            // Need to have a map for all inputs, which is all coordinates for the reduction
+////                            // (order + 1)
+////                            spAccIndexvarMap[spaccInputCnt] = indexvar;
+////                            spaccInputCnt++;
+////                        }
+////
+////                        reduceNode = taco::sam::SparseAccumulator(prevComputeNode,spAccCrds, reductionOrder.back(),
+////                                                                  spAccIndexvarMap, id);
+////
+////                        // Only pass coordinates to sparse accumulators for sparse accumulator d + 1, where d is the dimension of the sparse accumulator.
+////                        // For example, a sparse accumulator for a vector should take both the value and
+////                        for (int i = numIndexVars - 1; i >= (numIndexVars - 1 - reductionOrder.back()); i--) {
+////                            // FIXME: check if this is always correct for more complicated kernels
+////                            auto indexvar = getOrderedIndexVars().at(i);
+////                            cout << indexvar << ", " << endl;
+////                            // if (contains(resultWriteIRNodes, indexvar)) {
+////                            inputIterationCrdDst[indexvar] = reduceNode;
+////                            resultHasSource[indexvar] = true;
+////                            // }
+////                        }
+////                        reductionOrder.pop_back();
+//                        break;
+//                    default:
+//                        break;
+//                }
+//                prevComputeNode = reduceNode;
+//                id++;
+//            }
         }
 
         // Removed CrdHold code since crdholds are placed in SAM simulator now
@@ -833,6 +833,7 @@ namespace taco {
 
         SamIR computeBlock = prevComputeNode;
         map<TensorVar, SamIR> inputValsArrays;
+        map<int, SamIR> spAccCrds;
         match(content->expr,
               function<void(const taco::MulNode*,Matcher*)>([&](
                       const taco::MulNode* op, Matcher* ctx) {
@@ -850,15 +851,43 @@ namespace taco {
                   // check if array is scalar
                   bool isScalar = tensor.getFormat().getOrder() == 0;
                   auto array = taco::sam::Array(computeBlock, tensor, id,
-                                                false, isScalar && getOrderedIndexVars().size() == 0);
+                                                false, isScalar && getOrderedIndexVars().empty());
                   id++;
                   inputValsArrays[tensor] = array;
               }),
               function<void(const taco::ReductionNode*,Matcher*)>([&](
                         const taco::ReductionNode* op, Matcher* ctx) {
                   // FIXME: This should be any type of reducer (including SpAcc, not just reduce block)
-                  auto reduce = taco::sam::Reduce(computeBlock, id);
+                  SamIR reduce;
+                  if (op->var == getOrderedIndexVars().at(numIndexVars - 1)) {
+                      reduce = taco::sam::Reduce(computeBlock, id);
+                  } else {
+                    for (int i = numIndexVars - 1; i >= (numIndexVars - 1 - reductionOrder.back()); i--) {
+                      auto indexvar = getOrderedIndexVars().at(i);
+                      if (contains(resultWriteIRNodes, indexvar)) {
+                        spAccCrds[spaccInputCnt] = resultWriteIRNodes[indexvar];
+                      }
+
+                      spAccIndexvarMap[spaccInputCnt] = indexvar;
+                      spaccInputCnt++;
+                    }
+
+                    reduce = taco::sam::SparseAccumulator(prevComputeNode, spAccCrds, reductionOrder.back(),
+                                                              spAccIndexvarMap, id);
+
+                    // Only pass coordinates to sparse accumulators for sparse accumulator d + 1, where d is the
+                    // dimension of the sparse accumulator.
+                    // For example, a sparse accumulator for a vector should take both the value and
+                    for (int i = numIndexVars - 1; i >= (numIndexVars - 1 - reductionOrder.back()); i--) {
+                      // FIXME: check if this is always correct for more complicated kernels
+                      auto indexvar = getOrderedIndexVars().at(i);
+                      cout << indexvar << ", " << endl;
+                      inputIterationCrdDst[indexvar] = reduce;
+                      resultHasSource[indexvar] = true;
+                    }
+                  }
                   id++;
+                  reductionOrder.pop_back();
             computeBlock = reduce;
             ctx->match(op->a);
             computeBlock = reduce;
@@ -1238,5 +1267,6 @@ namespace taco {
         os << std::endl;
         return os;
     }
+
 
 }
