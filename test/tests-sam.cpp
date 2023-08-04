@@ -117,41 +117,46 @@ vector<std::string> tensors3 = {"fb1k.tns", "tensor1.tns"};
 TEST(sam, pack_sss012) {
     std::string frosttPath = std::getenv("FROSTT_PATH");
     std::string frosttFormatPath = std::getenv("FROSTT_FORMATTED_TACO_PATH");
-    for (auto& tnsPath : tensors3) {
-        std::string frosttTensorPath = frosttPath;
-        frosttTensorPath += "/"+tnsPath;
 
-        auto pathSplit = taco::util::split(tnsPath, "/");
-        auto filename = pathSplit[pathSplit.size() - 1];
-        auto tensorName = taco::util::split(filename, ".")[0];
-        cout << frosttTensorPath << endl;
-        cout << tensorName << "..." << endl;
+    std::string tnsPath = getenv("FROSTT_TENSOR_PATH");
 
-        Tensor<int64_t> frosttTensor, other;
-        std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SSS);
+    std::string frosttTensorPath = frosttPath;
+    frosttTensorPath += "/"+tnsPath;
 
-        ofstream origfile;
-        std::string outpath = frosttFormatPath + "/";
-        std::string origpath = outpath + tensorName + "_sss.txt";
-        cout << origpath << endl;
-        origfile.open (origpath);
-        if(!origfile) {
-            cout << "FAILED" << endl;
-        }
-        origfile << frosttTensor << endl;
-        origfile.close();
+    auto pathSplit = taco::util::split(tnsPath, "/");
+    auto filename = pathSplit[pathSplit.size() - 1];
+    auto tensorName = taco::util::split(filename, ".")[0];
+    cout << frosttTensorPath << endl;
+    cout << tensorName << "..." << endl;
 
-        ofstream shiftfile;
-        std::string shiftpath = outpath + tensorName + "_shift_sss.txt";
-        cout << shiftpath << endl;
-        shiftfile.open (shiftpath);
-        if(!shiftfile) {
-            cout << "FAILED" << endl;
-        }
-        shiftfile << other << endl;
-        shiftfile.close();
+    Tensor<int64_t> frosttTensor, other;
+    std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SSS);
 
+    ofstream origfile;
+    std::string outpath = frosttFormatPath + "/";
+    std::string origpath = outpath + tensorName + "_sss.txt";
+    cout << origpath << endl;
+    origfile.open (origpath);
+    if(!origfile) {
+	cout << "FAILED" << endl;
     }
+    origfile << frosttTensor << endl;
+    cout << "---- ORIC ----" << endl;
+    cout << frosttTensor << endl;
+    cout << "---- SHIFT ----" << endl;
+    origfile.close();
+
+    ofstream shiftfile;
+    std::string shiftpath = outpath + tensorName + "_shift_sss.txt";
+    cout << shiftpath << endl;
+    shiftfile.open (shiftpath);
+    if(!shiftfile) {
+	cout << "FAILED" << endl;
+    }
+    shiftfile << other << endl;
+    cout << other << endl;
+    shiftfile.close();
+    
 }
 
 TEST(sam, pack_other_frostt) {
@@ -164,54 +169,54 @@ TEST(sam, pack_other_frostt) {
 
     vector<std::string> otherNames;
 
-    for (auto& tnsPath : tensors3) {
-        auto pathSplit = taco::util::split(tnsPath, "/");
-        auto filename = pathSplit[pathSplit.size() - 1];
-        auto tensorName = taco::util::split(filename, ".")[0];
-        cout << tensorName << "..." << endl;
+    std::string tnsPath = getenv("FROSTT_TENSOR_PATH");
 
-        if (std::experimental::filesystem::exists(otherPath)) {
-            for (auto &entry: std::experimental::filesystem::directory_iterator(otherPath)) {
-                std::string f(entry.path());
+    auto pathSplit = taco::util::split(tnsPath, "/");
+    auto filename = pathSplit[pathSplit.size() - 1];
+    auto tensorName = taco::util::split(filename, ".")[0];
+    cout << tensorName << "..." << endl;
 
-                // Check that the filename ends with .mtx.
-                if (f.compare(f.size() - 4, 4, ".tns") == 0 && f.find(tensorName) != std::string::npos) {
-                    otherNames.push_back(entry.path());
-                }
-            }
-        }
+    if (std::experimental::filesystem::exists(otherPath)) {
+	for (auto &entry: std::experimental::filesystem::directory_iterator(otherPath)) {
+	    std::string f(entry.path());
+
+	    // Check that the filename ends with .tns.
+	    if (f.compare(f.size() - 4, 4, ".tns") == 0 && f.find(tensorName) != std::string::npos) {
+		otherNames.push_back(entry.path());
+	    }
+	}
+    }
 
 
-        for (auto &otherfile : otherNames) {
-            std::string filePath = otherfile;
+    for (auto &otherfile : otherNames) {
+	std::string filePath = otherfile;
 
-            auto otherPathSplit = taco::util::split(otherfile, "/");
-            cout << util::join(otherPathSplit) << endl;
-            auto otherFilename = otherPathSplit[otherPathSplit.size() - 1];
-            auto otherName = otherFilename.substr(0, otherFilename.size() - 4);
-            
-            cout << otherName << "..." << endl;
+	auto otherPathSplit = taco::util::split(otherfile, "/");
+	cout << util::join(otherPathSplit) << endl;
+	auto otherFilename = otherPathSplit[otherPathSplit.size() - 1];
+	auto otherName = otherFilename.substr(0, otherFilename.size() - 4);
+	
+	cout << otherName << "..." << endl;
 
-            Tensor<int64_t> tensor, other;
-            Format format;
-            if (otherName.find("vec") != std::string::npos) {
-                format = Sparse;
-            } else {
-                format = DCSR;
-            }
+	Tensor<int64_t> tensor, other;
+	Format format;
+	if (otherName.find("vec") != std::string::npos) {
+	    format = Sparse;
+	} else {
+	    format = DCSR;
+	}
 
-            std::tie(tensor, other) = inputCache.getUfuncInput(filePath, format);
+	std::tie(tensor, other) = inputCache.getUfuncInput(filePath, format);
 
-            ofstream origfile;
-            std::string outpath = otherFormattedPath + "/";
-            std::string origpath = outpath + otherName + ".txt";
-            origfile.open (origpath);
-            if(!origfile) {
-                cout << "FAILED" << endl;
-            }
-            origfile << tensor << endl;
-            origfile.close();
-        }
+	ofstream origfile;
+	std::string outpath = otherFormattedPath + "/";
+	std::string origpath = outpath + otherName + ".txt";
+	origfile.open (origpath);
+	if(!origfile) {
+	    cout << "FAILED" << endl;
+	}
+	origfile << tensor << endl;
+	origfile.close();
     }
 }
 
