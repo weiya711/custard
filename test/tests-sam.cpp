@@ -106,6 +106,8 @@ UfuncInputCache inputCache;
 
 const Format DSSS({Dense, Sparse, Sparse, Sparse}, {0,1,2,3});
 const Format SSS({Sparse, Sparse, Sparse}, {0,1,2});
+const Format SS({Sparse, Sparse}, {0,1});
+const Format S({Sparse}, {0});
 const Format DSS({Dense, Sparse, Sparse}, {0,1,2});
 
 // vector<std::string> tensors3 = { "fb1k.tns"};
@@ -115,22 +117,34 @@ vector<std::string> tensors3 = {"fb1k.tns", "tensor1.tns"};
 
 
 TEST(sam, pack_sss012) {
-    std::string frosttPath = std::getenv("FROSTT_PATH");
-    std::string frosttFormatPath = std::getenv("FROSTT_FORMATTED_TACO_PATH");
+  std::string frosttPath = std::getenv("FROSTT_PATH");
+  std::string frosttFormatPath = std::getenv("FROSTT_FORMATTED_TACO_PATH");
 
-    std::string tnsPath = getenv("FROSTT_TENSOR_PATH");
+  std::string tnsPath = getenv("FROSTT_TENSOR_PATH");
 
-    std::string frosttTensorPath = frosttPath;
-    frosttTensorPath += "/"+tnsPath;
+  std::string frosttTensorPath = frosttPath;
+  frosttTensorPath += "/" + tnsPath;
 
-    auto pathSplit = taco::util::split(tnsPath, "/");
-    auto filename = pathSplit[pathSplit.size() - 1];
-    auto tensorName = taco::util::split(filename, ".")[0];
-    cout << frosttTensorPath << endl;
-    cout << tensorName << "..." << endl;
+  auto pathSplit = taco::util::split(tnsPath, "/");
+  auto filename = pathSplit[pathSplit.size() - 1];
+  auto tensorName = taco::util::split(filename, ".")[0];
+  cout << frosttTensorPath << endl;
+  cout << tensorName << "..." << endl;
 
-    Tensor<int64_t> frosttTensor, other;
-    std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SSS);
+  Tensor<int64_t> frosttTensor, other;
+
+  std::string formatStr = int(std::getenv("TENSOR_FORMAT"));
+  if (formatStr == "ss") {
+    std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SS);
+  } else if (formatStr == "s") {
+      std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, S);
+  }
+  else if (formatStr == "sss") {
+        std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SSS);
+  } else {
+    taco_uerror << "Not a valid TENSOR_FORMAT" << std::endl;
+  }
+
 
     ofstream origfile;
     std::string outpath = frosttFormatPath + "/";
@@ -138,12 +152,10 @@ TEST(sam, pack_sss012) {
     cout << origpath << endl;
     origfile.open (origpath);
     if(!origfile) {
-	cout << "FAILED" << endl;
+      cout << "FAILED" << endl;
     }
     origfile << frosttTensor << endl;
-    cout << "---- ORIC ----" << endl;
     cout << frosttTensor << endl;
-    cout << "---- SHIFT ----" << endl;
     origfile.close();
 
     ofstream shiftfile;
@@ -151,7 +163,7 @@ TEST(sam, pack_sss012) {
     cout << shiftpath << endl;
     shiftfile.open (shiftpath);
     if(!shiftfile) {
-	cout << "FAILED" << endl;
+      cout << "FAILED" << endl;
     }
     shiftfile << other << endl;
     cout << other << endl;
@@ -160,6 +172,7 @@ TEST(sam, pack_sss012) {
 }
 
 TEST(sam, pack_other_frostt) {
+
     std::string otherPath = std::getenv("TACO_TENSOR_PATH");
     otherPath += "/other";
     std::string otherFormattedPath = std::getenv("TACO_TENSOR_PATH");
@@ -182,7 +195,7 @@ TEST(sam, pack_other_frostt) {
 
 	    // Check that the filename ends with .tns.
 	    if (f.compare(f.size() - 4, 4, ".tns") == 0 && f.find(tensorName) != std::string::npos) {
-		otherNames.push_back(entry.path());
+        otherNames.push_back(entry.path());
 	    }
 	}
     }
