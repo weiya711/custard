@@ -133,7 +133,7 @@ TEST(sam, pack_sss012) {
 
   Tensor<int64_t> frosttTensor, other;
 
-  std::string formatStr = int(std::getenv("TENSOR_FORMAT"));
+  std::string formatStr = std::getenv("TENSOR_FORMAT");
   if (formatStr == "ss") {
     std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SS);
   } else if (formatStr == "s") {
