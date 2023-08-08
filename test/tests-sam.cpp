@@ -142,7 +142,7 @@ TEST(sam, pack_sss012) {
   else if (formatStr == "sss") {
         std::tie(frosttTensor, other) = inputCache.getUfuncInput(frosttTensorPath, SSS);
   } else {
-    taco_uerror << "Not a valid TENSOR_FORMAT" << std::endl;
+    taco_uerror << "Not a valid TENSOR_FORMAT: " << formatStr << std::endl;
   }
 
 
