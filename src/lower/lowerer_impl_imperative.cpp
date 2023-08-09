@@ -1828,13 +1828,20 @@ Stmt LowererImplImperative::lowerMergeCases(ir::Expr coordinate, IndexVar coordi
   vector<Iterator> inserters;
   tie(appenders, inserters) = splitAppenderAndInserters(loopLattice.results());
 
-  // If loo
-  if (loopLattice.iterators().size() == 1 || (loopLattice.exact() &&
-        isa<Assignment>(stmt) && returnsTrue(stmt.as<Assignment>().getRhs()))) {
-    // Just one iterator so no conditional
+  if (loopLattice.iterators().size() == 1) {
+    // Just one iterator, so no conditionals needed 
     taco_iassert(!loopLattice.points()[0].isOmitter());
-    Stmt body = lowerForallBody(coordinate, stmt, {}, inserters,
-                                appenders, loopLattice, reducedAccesses, mergeStrategy);
+    Stmt body = lowerForallBody(coordinate, stmt, {}, inserters, appenders, 
+                                loopLattice, reducedAccesses, mergeStrategy);
+    result.push_back(body);
+  }
+  else if (loopLattice.exact() && isa<Assignment>(stmt) && 
+           returnsTrue(stmt.as<Assignment>().getRhs())) {
+    // All cases require the same computation, so no conditionals needed
+    taco_iassert(!loopLattice.points()[0].isOmitter());
+    Stmt body = lowerForallBody(coordinate, stmt, {}, inserters, appenders, 
+                                MergeLattice({loopLattice.points()[0]}), 
+                                reducedAccesses, mergeStrategy);
     result.push_back(body);
   }
   else if (!loopLattice.points().empty()) {
@@ -2028,16 +2035,25 @@ Stmt LowererImplImperative::lowerMergeCasesWithExplicitZeroChecks(ir::Expr coord
                                                         MergeStrategy mergeStrategy) {
 
     vector<Stmt> result;
-    if (lattice.points().size() == 1 && lattice.iterators().size() == 1
-        || (lattice.exact() && 
-      isa<Assignment>(stmt) && returnsTrue(stmt.as<Assignment>().getRhs()))) {
-      // Just one iterator so no conditional
+    if (lattice.points().size() == 1 && lattice.iterators().size() == 1) {
+      // Just one iterator, so no conditional needed
       vector<Iterator> appenders;
       vector<Iterator> inserters;
       tie(appenders, inserters) = splitAppenderAndInserters(lattice.results());
       taco_iassert(!lattice.points()[0].isOmitter());
       Stmt body = lowerForallBody(coordinate, stmt, {}, inserters,
                                   appenders, lattice, reducedAccesses, mergeStrategy);
+      result.push_back(body);
+    } else if (lattice.exact() && isa<Assignment>(stmt) && 
+               returnsTrue(stmt.as<Assignment>().getRhs())) {
+      // All cases require the same computation, so no conditionals needed
+      vector<Iterator> appenders;
+      vector<Iterator> inserters;
+      tie(appenders, inserters) = splitAppenderAndInserters(lattice.results());
+      taco_iassert(!lattice.points()[0].isOmitter());
+      Stmt body = lowerForallBody(coordinate, stmt, {}, inserters, appenders,
+                                  MergeLattice({lattice.points()[0]}), 
+                                  reducedAccesses, mergeStrategy);
       result.push_back(body);
     } else if (!lattice.points().empty()) {
       map<Iterator, Expr> iteratorToConditionMap;
@@ -2274,6 +2290,12 @@ std::pair<bool,bool> LowererImplImperative::canAccelerateDenseTemp(Where where) 
   }
 
   TensorVar temporary = where.getTemporary();
+
+  // (0) Acceleration flag is true
+  if (!temporary.getShouldAccel()) {
+    return std::make_pair(false, false);
+  }
+
   // (1) Temporary is dense vector
   if(!isDense(temporary.getFormat()) || temporary.getOrder() != 1) {
     return std::make_pair(false, false);
@@ -2302,7 +2324,6 @@ std::pair<bool,bool> LowererImplImperative::canAccelerateDenseTemp(Where where) 
           return resultVar == tempVar[0] ||
                  provGraph.isDerivedFrom(tempVar[0], resultVar);
   });
-
   if (it == resultVars.end()) {
     return std::make_pair(true, false);
   }
@@ -3046,7 +3067,7 @@ Stmt LowererImplImperative::initResultArrays(vector<Access> writes,
     taco_iassert(!iterators.empty());
 
     Expr tensor = getTensorVar(write.getTensorVar());
-    Expr fill = GetProperty::make(tensor, TensorProperty::FillValue);
+    Expr fill = lower(write.getTensorVar().getFill());
     Expr valuesArr = GetProperty::make(tensor, TensorProperty::Values);
     bool clearValuesAllocation = false;
 
@@ -3214,7 +3235,7 @@ Stmt LowererImplImperative::initResultArrays(IndexVar var, vector<Access> writes
   vector<Stmt> result;
   for (auto& write : writes) {
     Expr tensor = getTensorVar(write.getTensorVar());
-    Expr fill = GetProperty::make(tensor, TensorProperty::FillValue);
+    Expr fill = lower(write.getTensorVar().getFill());
     Expr values = GetProperty::make(tensor, TensorProperty::Values);
 
     vector<Iterator> iterators = getIteratorsFrom(var, getIterators(write));
