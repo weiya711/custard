@@ -563,7 +563,7 @@ Access TensorBase::operator()(const std::vector<IndexVar>& indices) {
 
 Access TensorBase::operator()(const std::vector<std::shared_ptr<IndexVarInterface>>& indices) {
   taco_uassert(indices.size() == (size_t)getOrder())
-      << "A tensor of order " << getOrder() << " must be indexed with "
+      << "A tensor " << getTensorVar() << " of order " << getOrder() << " must be indexed with "
       << getOrder() << " variables, but is indexed with:  "
       << util::join(indices);
   return Access(new AccessTensorNode(*this, indices));
