@@ -734,6 +734,10 @@ enum class FileType {
 /// and the tensor is returned packed by default.
 TensorBase read(std::string filename, ModeFormat modeType, bool pack = true);
 
+// Read a tensor from a file. The file format is inferred from the filename
+// and the tensor is returned packed by default.
+TensorBase readDim(std::string filename, Format format, std::vector<int> dims, bool pack = true);
+
 /// Read a tensor from a file. The file format is inferred from the filename
 /// and the tensor is returned packed by default.
 TensorBase read(std::string filename, Format format, bool pack = true);

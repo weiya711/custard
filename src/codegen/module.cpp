@@ -120,6 +120,10 @@ string Module::compile() {
     cc = util::getFromEnv("TACO_NVCC", "nvcc");
     cflags = util::getFromEnv("TACO_NVCCFLAGS",
     get_default_CUDA_compiler_flags());
+
+    // cflags += " -ccbin " + getCUDACompiler();
+    cflags += " -ccbin /usr/bin/gcc-7";
+    
     file_ending = ".cu";
     shims_file = prefix + "_shims.cpp";
   }

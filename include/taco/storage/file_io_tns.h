@@ -18,12 +18,18 @@ TensorBase readTNS(std::string filename, const ModeFormat& modetype,
 /// Read a tns tensor from a file.
 TensorBase readTNS(std::string filename, const Format& format, bool pack=true);
 
+/// Read a tns tensor from a file.
+TensorBase readTNS(std::string filename, const Format& format, std::vector<int> dims, bool pack=true);
+
 /// Read a tns tensor from a stream.
 TensorBase readTNS(std::istream& stream, const ModeFormat& modetype, 
                    bool pack=true);
 
 /// Read a tns tensor from a stream.
 TensorBase readTNS(std::istream& stream, const Format& format, bool pack=true);
+
+/// Read a tns tensor from a stream.
+TensorBase readTNS(std::istream& stream, const Format& format, std::vector<int> dims, bool pack=true);
 
 /// Write a tns tensor to a file.
 void writeTNS(std::string filename, const TensorBase& tensor);

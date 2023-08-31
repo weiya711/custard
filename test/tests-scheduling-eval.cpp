@@ -217,7 +217,7 @@ IndexStmt scheduleSpMVRowsGPU(IndexStmt stmt, Tensor<double> A, IndexExpr precom
           .pos(j, jpos, A(i, j))
           .split(jpos, thread_nz, thread, WARP_SIZE)
           .reorder({block, warp, warp_row, thread, thread_nz})
-          .parallelize(block, ParallelUnit::GPUBlock, OutputRaceStrategy::IgnoreRaces)
+		  .parallelize(block, ParallelUnit::GPUBlock, OutputRaceStrategy::IgnoreRaces)
           .parallelize(warp, ParallelUnit::GPUWarp, OutputRaceStrategy::IgnoreRaces)
           .parallelize(thread, ParallelUnit::GPUThread, OutputRaceStrategy::Temporary);
 }
@@ -1209,6 +1209,7 @@ TEST(scheduling_eval, mttkrpCPU) {
 
 TEST(scheduling_eval, spmvGPU) {
   if (!should_use_CUDA_codegen()) {
+	std::cout << "CUDA: " << should_use_CUDA_codegen() << std::endl;
     return;
   }
   int NUM_I = 1021/10;
@@ -1241,11 +1242,13 @@ TEST(scheduling_eval, spmvGPU) {
   IndexStmt stmt = y.getAssignment().concretize();
   stmt = scheduleSpMVGPU(stmt, A, precomputed);
 
-  //printToFile("spmv_gpu", stmt);
+  // printToFile("spmv_gpu", stmt);
 
   y.compile(stmt);
   y.assemble();
   y.compute();
+
+  // std::cout << "Result " << y << std::endl;
 
   Tensor<double> expected("expected", {NUM_I}, Format({Dense}));
   expected(i) = A(i, j) * x(j);
