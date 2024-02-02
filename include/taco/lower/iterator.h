@@ -47,6 +47,9 @@ public:
   Iterator(IndexVar indexVar, ir::Expr tensor, Mode mode, Iterator parent,
            std::string name, bool useNameForPos=true);
 
+  /// PATCH: Sparse GPU Output
+  Iterator(const Iterator &sparseMaskIterator, ir::Expr resultTensor);
+
   /// Returns true if the iterator is a root iterator.
   bool isRoot() const;
 

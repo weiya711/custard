@@ -631,13 +631,22 @@ LowererImplImperative::splitAppenderAndInserters(const vector<Iterator>& results
     taco_iassert(result.hasAppend() || result.hasInsert())
         << "Results must support append or insert";
 
-    if (result.hasAppend()) {
+
+    // PATCH: Sparse GPU output (owhsu)
+    bool sparseMask = result.getTensor() != result.getParent().getTensor();
+    if (result.hasAppend() && !sparseMask) {
       appenders.push_back(result);
-    }
-    else {
-      taco_iassert(result.hasInsert());
+    } else {
+      taco_iassert(result.hasInsert() || sparseMask);
       inserters.push_back(result);
     }
+//    if (result.hasAppend()) {
+//      appenders.push_back(result);
+//    }
+//    else {
+//      taco_iassert(result.hasInsert());
+//      inserters.push_back(result);
+//    }
   }
 
   return {appenders, inserters};
